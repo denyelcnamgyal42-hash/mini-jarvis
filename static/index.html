@@ -7,6 +7,13 @@
 
     <title>Mini Jarvis</title>
 
+    <link rel="manifest" href="/static/manifest.json" />
+    <meta name="theme-color" content="#38bdf8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Jarvis" />
+    <link rel="apple-touch-icon" href="/static/icon-192.png" />
+
     <style>
         * {
             box-sizing: border-box;
@@ -23,6 +30,7 @@
             --user-msg: linear-gradient(135deg, #2563eb, #1d4ed8);
             --jarvis-msg: #1e293b;
             --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
         body {
@@ -165,8 +173,15 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(5, minmax(72px, 1fr));
             gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+
+        .stats-grid::-webkit-scrollbar {
+            display: none;
         }
 
         .stat-card {
@@ -175,6 +190,7 @@
             border-radius: 16px;
             padding: 12px;
             text-align: center;
+            min-width: 72px;
         }
 
         .stat-card span {
@@ -188,6 +204,14 @@
             margin: 4px 0 0;
             font-size: 12px;
             color: var(--text-muted);
+        }
+
+        .stat-card.overdue span {
+            color: var(--danger);
+        }
+
+        .stat-card.today span {
+            color: var(--warning);
         }
 
         .chat-box {
@@ -427,6 +451,8 @@
 
                 <div class="quick-actions">
                     <button class="chip" onclick="quickSend('list tasks')">List tasks</button>
+                    <button class="chip" onclick="quickSend('show tasks due today')">Due today</button>
+                    <button class="chip" onclick="quickSend('show overdue tasks')">Overdue</button>
                     <button class="chip" onclick="quickSend('what time is it?')">Time</button>
                     <button class="chip" onclick="quickSend('list notes')">Notes</button>
                     <button class="chip" onclick="quickFill('add task ')">Add task</button>
@@ -443,6 +469,16 @@
                         <div class="stat-card">
                             <span id="pendingCount">0</span>
                             <p>Pending</p>
+                        </div>
+
+                        <div class="stat-card today">
+                            <span id="dueTodayCount">0</span>
+                            <p>Due Today</p>
+                        </div>
+
+                        <div class="stat-card overdue">
+                            <span id="overdueCount">0</span>
+                            <p>Overdue</p>
                         </div>
 
                         <div class="stat-card">
@@ -462,7 +498,8 @@
                 <div class="message-row jarvis-row">
                     <div>
                         <div class="message jarvis">
-                            Hello. I am Mini Jarvis. Tap the mic to record, tap again to stop, or type a message.
+                            Hello. I am Mini Jarvis. You can add tasks with due dates, ask for today’s tasks, check
+                            overdue work, or use voice.
                         </div>
                         <div class="timestamp">Jarvis</div>
                     </div>
@@ -500,6 +537,8 @@
         const greetingText = document.getElementById("greetingText");
         const focusText = document.getElementById("focusText");
         const pendingCount = document.getElementById("pendingCount");
+        const dueTodayCount = document.getElementById("dueTodayCount");
+        const overdueCount = document.getElementById("overdueCount");
         const completedCount = document.getElementById("completedCount");
         const notesCount = document.getElementById("notesCount");
 
@@ -535,6 +574,26 @@
             return "Good evening.";
         }
 
+        function formatDueDate(dueDate) {
+            if (!dueDate) return "";
+
+            const today = new Date();
+            const target = new Date(dueDate + "T00:00:00");
+
+            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const targetOnly = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+
+            const diffTime = targetOnly - todayOnly;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return "Due today";
+            if (diffDays === 1) return "Due tomorrow";
+            if (diffDays === -1) return "Due yesterday";
+            if (diffDays < -1) return `Overdue by ${Math.abs(diffDays)} days`;
+
+            return `Due ${dueDate}`;
+        }
+
         async function loadDashboard() {
             try {
                 const response = await fetch(`/dashboard?session_id=${sessionId}`);
@@ -543,11 +602,16 @@
                 greetingText.textContent = getGreeting();
 
                 pendingCount.textContent = data.pending_tasks ?? 0;
+                dueTodayCount.textContent = data.due_today ?? 0;
+                overdueCount.textContent = data.overdue ?? 0;
                 completedCount.textContent = data.completed_tasks ?? 0;
                 notesCount.textContent = data.notes_count ?? 0;
 
                 if (data.today_focus) {
-                    focusText.textContent = `Today's focus: ${data.today_focus.task}`;
+                    const dueText = formatDueDate(data.today_focus.due_date);
+                    focusText.textContent = dueText
+                        ? `Today's focus: ${data.today_focus.task} • ${dueText}`
+                        : `Today's focus: ${data.today_focus.task}`;
                 } else {
                     focusText.textContent = "No pending tasks. You're clear for now.";
                 }
@@ -749,6 +813,19 @@
                 sendMessage();
             }
         });
+
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker
+                    .register("/static/service-worker.js")
+                    .then(function () {
+                        console.log("Service worker registered.");
+                    })
+                    .catch(function (error) {
+                        console.log("Service worker registration failed:", error);
+                    });
+            });
+        }
 
         loadDashboard();
     </script>

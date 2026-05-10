@@ -6,6 +6,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from dotenv import load_dotenv
+from datetime import datetime
 
 from tools import jarvis_tools, set_session_id
 
@@ -28,17 +29,22 @@ llm = ChatGroq(
 llm_with_tools = llm.bind_tools(jarvis_tools)
 
 # main jarvis node
-
+today = datetime.now().date().isoformat()
 def jarvis_node(state: JarvisState):
     system_prompt = SystemMessage(
         content = (
-        "You are Mini Jarvis, a helpful personal AI assistant. "
+        f"You are Mini Jarvis, a helpful personal AI assistant. "
+        f"Today's date is {today}. "
         "You may only use these tools: add_task, list_tasks, complete_task, "
-        "delete_task, update_task, clear_completed_tasks, get_today_focus, "
-        "get_task_summary, save_note, list_notes, get_current_time, web_search. "
-        "Use task and note tools for personal productivity requests. "
-        "Use get_current_time for time questions. "
-        "Use web_search only when the user asks for current, latest, recent, online, news, search, or unknown information. "
+        "delete_task, update_task, clear_completed_tasks, list_today_tasks, "
+        "list_overdue_tasks, get_today_focus, get_task_summary, save_note, "
+        "list_notes, get_current_time, web_search. "
+        "Use task tools for task management. "
+        "When the user gives a due date like today, tomorrow, Friday, or a date, "
+        "pass the due_date argument as YYYY-MM-DD when possible. "
+        "Use list_today_tasks when the user asks for tasks due today. "
+        "Use list_overdue_tasks when the user asks for overdue tasks. "
+        "Use web_search only for current, latest, recent, online, news, search, or unknown information. "
         "For stable general knowledge, answer directly without tools. "
         "Do not call any tool that is not listed. "
         "Be concise and direct."

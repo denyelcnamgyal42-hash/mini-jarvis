@@ -1,13 +1,12 @@
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 from langchain_core.tools import tool
-from database import get_connection
-import os 
 from tavily import TavilyClient
-
-tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+from database import get_connection
 
 
 current_session_id = "default"
+tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 
 def set_session_id(session_id: str):
@@ -15,11 +14,64 @@ def set_session_id(session_id: str):
     current_session_id = session_id
 
 
+def normalize_due_date(due_date: str | None) -> str | None:
+    """
+    Converts simple natural date words into YYYY-MM-DD.
+    The LLM should usually send YYYY-MM-DD, but this protects us.
+    """
+
+    if not due_date:
+        return None
+
+    value = due_date.strip().lower()
+    today = datetime.now().date()
+
+    if value in ["none", "no due date", ""]:
+        return None
+
+    if value == "today":
+        return today.isoformat()
+
+    if value == "tomorrow":
+        return (today + timedelta(days=1)).isoformat()
+
+    # If already ISO format, keep it
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return value
+    except ValueError:
+        pass
+
+    # Simple weekday parsing
+    weekdays = {
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6
+    }
+
+    if value in weekdays:
+        target_day = weekdays[value]
+        days_ahead = target_day - today.weekday()
+
+        if days_ahead <= 0:
+            days_ahead += 7
+
+        return (today + timedelta(days=days_ahead)).isoformat()
+
+    return due_date
+
+
 @tool
-def add_task(task: str) -> str:
-    """Add task."""
+def add_task(task: str, due_date: str = "") -> str:
+    """Add task with optional due date."""
     conn = get_connection()
     cursor = conn.cursor()
+
+    final_due_date = normalize_due_date(due_date)
 
     cursor.execute(
         "SELECT COALESCE(MAX(local_id), 0) + 1 FROM tasks WHERE session_id = ?",
@@ -29,12 +81,18 @@ def add_task(task: str) -> str:
     next_local_id = cursor.fetchone()[0]
 
     cursor.execute(
-        "INSERT INTO tasks (session_id, local_id, task, status) VALUES (?, ?, ?, ?)",
-        (current_session_id, next_local_id, task, "pending")
+        """
+        INSERT INTO tasks (session_id, local_id, task, status, due_date)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (current_session_id, next_local_id, task, "pending", final_due_date)
     )
 
     conn.commit()
     conn.close()
+
+    if final_due_date:
+        return f"Added task {next_local_id}: {task} | Due: {final_due_date}"
 
     return f"Added task {next_local_id}: {task}"
 
@@ -47,10 +105,13 @@ def list_tasks() -> str:
 
     cursor.execute(
         """
-        SELECT local_id, task, status
+        SELECT local_id, task, status, due_date
         FROM tasks
         WHERE session_id = ?
-        ORDER BY local_id
+        ORDER BY 
+            CASE WHEN due_date IS NULL OR due_date = '' THEN 1 ELSE 0 END,
+            due_date,
+            local_id
         """,
         (current_session_id,)
     )
@@ -61,10 +122,15 @@ def list_tasks() -> str:
     if not rows:
         return "No tasks found."
 
-    return "\n".join(
-        f"{row[0]}. {row[1]} - {row[2]}"
-        for row in rows
-    )
+    lines = []
+
+    for local_id, task, status, due_date in rows:
+        if due_date:
+            lines.append(f"{local_id}. {task} - {status} | Due: {due_date}")
+        else:
+            lines.append(f"{local_id}. {task} - {status}")
+
+    return "\n".join(lines)
 
 
 @tool
@@ -117,19 +183,31 @@ def delete_task(task_id: int) -> str:
 
 
 @tool
-def update_task(task_id: int, new_task: str) -> str:
-    """Update task."""
+def update_task(task_id: int, new_task: str, due_date: str = "") -> str:
+    """Update task with optional due date."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        UPDATE tasks
-        SET task = ?
-        WHERE local_id = ? AND session_id = ?
-        """,
-        (new_task, task_id, current_session_id)
-    )
+    final_due_date = normalize_due_date(due_date)
+
+    if final_due_date:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET task = ?, due_date = ?
+            WHERE local_id = ? AND session_id = ?
+            """,
+            (new_task, final_due_date, task_id, current_session_id)
+        )
+    else:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET task = ?
+            WHERE local_id = ? AND session_id = ?
+            """,
+            (new_task, task_id, current_session_id)
+        )
 
     conn.commit()
 
@@ -138,6 +216,10 @@ def update_task(task_id: int, new_task: str) -> str:
         return f"No task found with ID {task_id}."
 
     conn.close()
+
+    if final_due_date:
+        return f"Task {task_id} updated to: {new_task} | Due: {final_due_date}"
+
     return f"Task {task_id} updated to: {new_task}"
 
 
@@ -164,6 +246,72 @@ def clear_completed_tasks() -> str:
 
 
 @tool
+def list_today_tasks() -> str:
+    """List tasks due today."""
+    today = datetime.now().date().isoformat()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT local_id, task, status
+        FROM tasks
+        WHERE session_id = ?
+        AND status = ?
+        AND due_date = ?
+        ORDER BY local_id
+        """,
+        (current_session_id, "pending", today)
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        return "No pending tasks due today."
+
+    return "\n".join(
+        f"{row[0]}. {row[1]} - {row[2]} | Due: {today}"
+        for row in rows
+    )
+
+
+@tool
+def list_overdue_tasks() -> str:
+    """List overdue tasks."""
+    today = datetime.now().date().isoformat()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT local_id, task, due_date
+        FROM tasks
+        WHERE session_id = ?
+        AND status = ?
+        AND due_date IS NOT NULL
+        AND due_date != ''
+        AND due_date < ?
+        ORDER BY due_date, local_id
+        """,
+        (current_session_id, "pending", today)
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        return "No overdue tasks."
+
+    return "\n".join(
+        f"{row[0]}. {row[1]} | Due: {row[2]}"
+        for row in rows
+    )
+
+
+@tool
 def get_today_focus() -> str:
     """Get focus task."""
     conn = get_connection()
@@ -171,10 +319,13 @@ def get_today_focus() -> str:
 
     cursor.execute(
         """
-        SELECT local_id, task
+        SELECT local_id, task, due_date
         FROM tasks
         WHERE session_id = ? AND status = ?
-        ORDER BY local_id
+        ORDER BY 
+            CASE WHEN due_date IS NULL OR due_date = '' THEN 1 ELSE 0 END,
+            due_date,
+            local_id
         LIMIT 1
         """,
         (current_session_id, "pending")
@@ -186,7 +337,12 @@ def get_today_focus() -> str:
     if not row:
         return "You have no pending tasks. Good job."
 
-    return f"Today's focus: Task {row[0]} - {row[1]}"
+    task_id, task, due_date = row
+
+    if due_date:
+        return f"Today's focus: Task {task_id} - {task} | Due: {due_date}"
+
+    return f"Today's focus: Task {task_id} - {task}"
 
 
 @tool
@@ -206,10 +362,34 @@ def get_task_summary() -> str:
     )
 
     rows = cursor.fetchall()
-    conn.close()
 
-    if not rows:
-        return "You have no tasks yet."
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE session_id = ?
+        AND status = ?
+        AND due_date = date('now', 'localtime')
+        """,
+        (current_session_id, "pending")
+    )
+    due_today = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE session_id = ?
+        AND status = ?
+        AND due_date IS NOT NULL
+        AND due_date != ''
+        AND due_date < date('now', 'localtime')
+        """,
+        (current_session_id, "pending")
+    )
+    overdue = cursor.fetchone()[0]
+
+    conn.close()
 
     summary = {
         "pending": 0,
@@ -220,9 +400,10 @@ def get_task_summary() -> str:
         summary[status] = count
 
     return (
-        f"Task summary: "
-        f"{summary['pending']} pending, "
-        f"{summary['done']} completed."
+        f"Task summary: {summary['pending']} pending, "
+        f"{summary['done']} completed, "
+        f"{due_today} due today, "
+        f"{overdue} overdue."
     )
 
 
@@ -272,6 +453,7 @@ def get_current_time() -> str:
     now = datetime.now()
     return now.strftime("%A, %d %B %Y, %I:%M %p")
 
+
 @tool
 def web_search(query: str) -> str:
     """Search web."""
@@ -314,6 +496,7 @@ def web_search(query: str) -> str:
     except Exception as e:
         return f"Web search error: {str(e)}"
 
+
 jarvis_tools = [
     add_task,
     list_tasks,
@@ -321,6 +504,8 @@ jarvis_tools = [
     delete_task,
     update_task,
     clear_completed_tasks,
+    list_today_tasks,
+    list_overdue_tasks,
     get_today_focus,
     get_task_summary,
     save_note,
