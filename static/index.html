@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Mini Jarvis</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #0f172a;
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .header {
+            padding: 16px 0;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+
+        .message {
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .user {
+            background: #2563eb;
+            margin-left: 40px;
+        }
+
+        .jarvis {
+            background: #1e293b;
+            margin-right: 40px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #334155;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 14px 18px;
+            border: none;
+            border-radius: 12px;
+            background: #38bdf8;
+            color: #020617;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>Mini Jarvis</h1>
+            <p>Your mobile AI agent assistant</p>
+        </div>
+
+        <div id="chatBox" class="chat-box">
+            <div class="message jarvis">
+                Hello. I am Mini Jarvis. Ask me to add tasks, save notes, list tasks, or check the time.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input id="messageInput" placeholder="Message Jarvis..." />
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById("chatBox");
+        const messageInput = document.getElementById("messageInput");
+        const sendBtn = document.getElementById("sendBtn");
+
+        function addMessage(text, sender) {
+            const div = document.createElement("div");
+            div.className = `message ${sender}`;
+            div.textContent = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        let sessionId = localStorage.getItem("jarvis_session_id");
+
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            localStorage.setItem("jarvis_session_id", sessionId);
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+
+            if (!message) return;
+
+            addMessage(message, "user");
+            messageInput.value = "";
+            sendBtn.disabled = true;
+            sendBtn.textContent = "...";
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message: message, session_id: sessionId })
+                });
+
+                const data = await response.json();
+                addMessage(data.reply, "jarvis");
+            } catch (error) {
+                addMessage("Error: Could not contact Jarvis.", "jarvis");
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.textContent = "Send";
+            messageInput.focus();
+        }
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>
