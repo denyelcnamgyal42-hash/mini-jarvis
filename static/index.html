@@ -132,6 +132,10 @@
             white-space: nowrap;
         }
 
+        .chip:active {
+            transform: scale(0.98);
+        }
+
         .chat-box {
             flex: 1;
             overflow-y: auto;
@@ -281,7 +285,7 @@
             border: 1px solid rgba(148, 163, 184, 0.26);
         }
 
-        .mic-btn.listening {
+        .mic-btn.recording {
             background: var(--danger);
             color: white;
             box-shadow: 0 0 22px rgba(239, 68, 68, 0.55);
@@ -379,7 +383,7 @@
                 <div class="message-row jarvis-row">
                     <div>
                         <div class="message jarvis">
-                            Hello. I am Mini Jarvis. Tap the mic and speak, or type a message.
+                            Hello. I am Mini Jarvis. Tap the mic to record, tap again to stop, or type a message.
                         </div>
                         <div class="timestamp">Jarvis</div>
                     </div>
@@ -421,58 +425,9 @@
             localStorage.setItem("jarvis_session_id", sessionId);
         }
 
-        let recognition = null;
-        let isListening = false;
-        let voiceEnabled = true;
-        console.log("SpeechRecognition support:", SpeechRecognition);
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.lang = "en-US";
-            recognition.continuous = false;
-            recognition.interimResults = true;
-
-            recognition.onstart = function () {
-                isListening = true;
-                micBtn.classList.add("listening");
-                voiceStatus.textContent = "Listening...";
-            };
-
-            recognition.onresult = function (event) {
-                let transcript = "";
-
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-
-                messageInput.value = transcript;
-            };
-
-            recognition.onerror = function (event) {
-                voiceStatus.textContent = "Voice error: " + event.error;
-                isListening = false;
-                micBtn.classList.remove("listening");
-            };
-
-            recognition.onend = function () {
-                isListening = false;
-                micBtn.classList.remove("listening");
-
-                const message = messageInput.value.trim();
-
-                if (message) {
-                    voiceStatus.textContent = "Sending voice message...";
-                    sendMessage(true);
-                } else {
-                    voiceStatus.textContent = "";
-                }
-            };
-        } else {
-            micBtn.disabled = true;
-            voiceStatus.textContent = "Voice input is not supported in this browser.";
-        }
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
 
         function getTime() {
             return new Date().toLocaleTimeString([], {
@@ -517,34 +472,100 @@
 
         function quickSend(text) {
             messageInput.value = text;
-            sendMessage(false);
+            sendMessage();
         }
 
-        function toggleVoice() {
-            console.log("Mic button clicked");
-
-            if (!recognition) {
-                voiceStatus.textContent = "Voice input is not supported in this browser.";
+        async function toggleVoice() {
+            if (isRecording) {
+                mediaRecorder.stop();
                 return;
             }
 
-            if (isListening) {
-                recognition.stop();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                voiceStatus.textContent = "Microphone recording is not supported in this browser.";
                 return;
             }
-
-            window.speechSynthesis.cancel();
-            messageInput.value = "";
 
             try {
-                recognition.start();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                audioChunks = [];
+
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: "audio/webm"
+                });
+
+                mediaRecorder.onstart = function () {
+                    isRecording = true;
+                    micBtn.classList.add("recording");
+                    micBtn.textContent = "■";
+                    voiceStatus.textContent = "Recording... tap again to stop.";
+                };
+
+                mediaRecorder.ondataavailable = function (event) {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async function () {
+                    isRecording = false;
+                    micBtn.classList.remove("recording");
+                    micBtn.textContent = "🎤";
+                    voiceStatus.textContent = "Transcribing...";
+
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const audioBlob = new Blob(audioChunks, {
+                        type: "audio/webm"
+                    });
+
+                    await sendVoiceMessage(audioBlob);
+                };
+
+                mediaRecorder.start();
+
             } catch (error) {
-                voiceStatus.textContent = "Could not start microphone: " + error.message;
-                console.log(error);
+                voiceStatus.textContent = "Microphone error: " + error.message;
+                isRecording = false;
+                micBtn.classList.remove("recording");
+                micBtn.textContent = "🎤";
             }
         }
+
+        async function sendVoiceMessage(audioBlob) {
+            setLoading(true);
+
+            try {
+                const formData = new FormData();
+                formData.append("audio", audioBlob, "voice.webm");
+                formData.append("session_id", sessionId);
+
+                const response = await fetch("/voice-chat", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.transcript) {
+                    addMessage(data.transcript, "user");
+                }
+
+                const reply = data.reply || "No response received.";
+                addMessage(reply, "jarvis");
+                speak(reply);
+
+            } catch (error) {
+                addMessage("Could not process voice message. Check the backend logs.", "jarvis");
+            } finally {
+                setLoading(false);
+                voiceStatus.textContent = "";
+            }
+        }
+
         function speak(text) {
-            if (!voiceEnabled || !("speechSynthesis" in window)) {
+            if (!("speechSynthesis" in window)) {
                 return;
             }
 
@@ -559,7 +580,7 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        async function sendMessage(fromVoice = false) {
+        async function sendMessage() {
             const message = messageInput.value.trim();
 
             if (!message) return;
@@ -591,10 +612,6 @@
                 const reply = data.reply || "No response received.";
                 addMessage(reply, "jarvis");
 
-                if (fromVoice) {
-                    speak(reply);
-                }
-
             } catch (error) {
                 addMessage("Could not contact Jarvis. Check if the backend server is running.", "jarvis");
             } finally {
@@ -605,7 +622,7 @@
 
         messageInput.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
-                sendMessage(false);
+                sendMessage();
             }
         });
     </script>

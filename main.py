@@ -1,3 +1,8 @@
+import os 
+import tempfile
+from groq import Groq
+from fastapi import UploadFilem, File, Form 
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -9,6 +14,8 @@ from database import init_db
 from agent import ask_jarvis 
 
 load_dotenv()
+
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = FastAPI(title="Mini Jarvis Agent")
 init_db()
@@ -45,3 +52,44 @@ def chat(request: ChatRequest):
     except Exception as e:
         print("Backend error:", e)
         return {"reply": f"Backend error: {str(e)}"}
+
+@app.post("/voice-chat")
+async def voice_chat(
+    audio: UploadFile = File(...),
+    session_id: str = Form(...)
+):
+    try:
+        print("Voice request received")
+        print("Session ID:", session_id)
+        print("Audio file:", audio.filename)
+
+        suffix = ".webm"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_audio:
+            temp_audio.write(await audio.read())
+            temp_audio_path = temp_audio.name
+
+        with open(temp_audio_path, "rb") as file:
+            transcription = groq_client.audio.transcriptions.create(
+                file=file,
+                model="whisper-large-v3-turbo",
+                response_format="text"
+            )
+
+        os.remove(temp_audio_path)
+
+        print("Transcribed text:", transcription)
+
+        reply = ask_jarvis(transcription, session_id)
+
+        return {
+            "transcript": transcription,
+            "reply": reply
+        }
+
+    except Exception as e:
+        print("Voice backend error:", e)
+        return {
+            "transcript": "",
+            "reply": f"Voice backend error: {str(e)}"
+        }
