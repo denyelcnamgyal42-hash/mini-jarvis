@@ -1,7 +1,7 @@
 import os 
 import tempfile
 from groq import Groq
-from fastapi import UploadFilem, File, Form 
+from fastapi import UploadFile, File, Form 
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
