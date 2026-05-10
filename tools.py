@@ -18,14 +18,21 @@ def add_task(task: str) -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO tasks (session_id, task, status) VALUES (?, ?, ?)",
-        (current_session_id, task, "pending")
+        "SELECT COALESCE(MAX(local_id), 0) + 1 FROM tasks WHERE session_id = ?",
+        (current_session_id,)
+    )
+
+    next_local_id = cursor.fetchone()[0]
+
+    cursor.execute(
+        "INSERT INTO tasks (session_id, local_id, task, status) VALUES (?, ?, ?, ?)",
+        (current_session_id, next_local_id, task, "pending")
     )
 
     conn.commit()
     conn.close()
 
-    return f"Added task: {task}"
+    return f"Added task {next_local_id}: {task}"
 
 
 @tool
@@ -35,7 +42,12 @@ def list_tasks() -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, task, status FROM tasks WHERE session_id = ?",
+        """
+        SELECT local_id, task, status
+        FROM tasks
+        WHERE session_id = ?
+        ORDER BY local_id
+        """,
         (current_session_id,)
     )
 
@@ -58,7 +70,11 @@ def complete_task(task_id: int) -> str:
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE tasks SET status = ? WHERE id = ? AND session_id = ?",
+        """
+        UPDATE tasks
+        SET status = ?
+        WHERE local_id = ? AND session_id = ?
+        """,
         ("done", task_id, current_session_id)
     )
 

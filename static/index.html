@@ -15,15 +15,14 @@
 
         :root {
             --bg-main: #020617;
-            --bg-card: rgba(15, 23, 42, 0.92);
-            --bg-soft: #111827;
+            --bg-card: rgba(15, 23, 42, 0.94);
             --border-soft: rgba(148, 163, 184, 0.25);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent: #38bdf8;
-            --accent-dark: #0284c7;
             --user-msg: linear-gradient(135deg, #2563eb, #1d4ed8);
             --jarvis-msg: #1e293b;
+            --danger: #ef4444;
         }
 
         body {
@@ -131,10 +130,6 @@
             font-size: 13px;
             cursor: pointer;
             white-space: nowrap;
-        }
-
-        .chip:active {
-            transform: scale(0.98);
         }
 
         .chat-box {
@@ -269,30 +264,63 @@
             font-weight: 700;
         }
 
-        .send-btn {
+        .icon-btn {
             width: 46px;
             height: 46px;
             border-radius: 15px;
-            background: var(--accent);
-            color: #020617;
             display: grid;
             place-items: center;
             flex-shrink: 0;
             transition: 0.2s ease;
+            font-size: 18px;
+        }
+
+        .mic-btn {
+            background: rgba(30, 41, 59, 0.95);
+            color: #e0f2fe;
+            border: 1px solid rgba(148, 163, 184, 0.26);
+        }
+
+        .mic-btn.listening {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 0 22px rgba(239, 68, 68, 0.55);
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.06);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: #020617;
         }
 
         .send-btn:hover {
             background: #7dd3fc;
         }
 
-        .send-btn:disabled {
+        .icon-btn:disabled {
             opacity: 0.55;
             cursor: not-allowed;
         }
 
-        .send-icon {
-            font-size: 20px;
-            transform: translateX(1px);
+        .voice-status {
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            min-height: 16px;
         }
 
         @media (max-width: 520px) {
@@ -351,7 +379,7 @@
                 <div class="message-row jarvis-row">
                     <div>
                         <div class="message jarvis">
-                            Hello. I am Mini Jarvis. I can manage your tasks, save notes, and answer simple questions.
+                            Hello. I am Mini Jarvis. Tap the mic and speak, or type a message.
                         </div>
                         <div class="timestamp">Jarvis</div>
                     </div>
@@ -369,11 +397,11 @@
 
             <footer class="input-area">
                 <div class="input-wrapper">
+                    <button id="micBtn" class="icon-btn mic-btn" onclick="toggleVoice()">🎤</button>
                     <input id="messageInput" placeholder="Ask Jarvis anything..." autocomplete="off" />
-                    <button id="sendBtn" class="send-btn" onclick="sendMessage()">
-                        <span class="send-icon">➤</span>
-                    </button>
+                    <button id="sendBtn" class="icon-btn send-btn" onclick="sendMessage()">➤</button>
                 </div>
+                <div id="voiceStatus" class="voice-status"></div>
             </footer>
         </main>
     </div>
@@ -382,13 +410,67 @@
         const chatBox = document.getElementById("chatBox");
         const messageInput = document.getElementById("messageInput");
         const sendBtn = document.getElementById("sendBtn");
+        const micBtn = document.getElementById("micBtn");
         const typingIndicator = document.getElementById("typingIndicator");
+        const voiceStatus = document.getElementById("voiceStatus");
 
         let sessionId = localStorage.getItem("jarvis_session_id");
 
         if (!sessionId) {
             sessionId = crypto.randomUUID();
             localStorage.setItem("jarvis_session_id", sessionId);
+        }
+
+        let recognition = null;
+        let isListening = false;
+        let voiceEnabled = true;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onstart = function () {
+                isListening = true;
+                micBtn.classList.add("listening");
+                voiceStatus.textContent = "Listening...";
+            };
+
+            recognition.onresult = function (event) {
+                let transcript = "";
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+
+                messageInput.value = transcript;
+            };
+
+            recognition.onerror = function (event) {
+                voiceStatus.textContent = "Voice error: " + event.error;
+                isListening = false;
+                micBtn.classList.remove("listening");
+            };
+
+            recognition.onend = function () {
+                isListening = false;
+                micBtn.classList.remove("listening");
+
+                const message = messageInput.value.trim();
+
+                if (message) {
+                    voiceStatus.textContent = "Sending voice message...";
+                    sendMessage(true);
+                } else {
+                    voiceStatus.textContent = "";
+                }
+            };
+        } else {
+            micBtn.disabled = true;
+            voiceStatus.textContent = "Voice input is not supported in this browser.";
         }
 
         function getTime() {
@@ -422,6 +504,7 @@
 
         function setLoading(isLoading) {
             sendBtn.disabled = isLoading;
+            micBtn.disabled = isLoading;
             typingIndicator.style.display = isLoading ? "flex" : "none";
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -433,10 +516,42 @@
 
         function quickSend(text) {
             messageInput.value = text;
-            sendMessage();
+            sendMessage(false);
         }
 
-        async function sendMessage() {
+        function toggleVoice() {
+            if (!recognition) {
+                voiceStatus.textContent = "Voice input is not supported.";
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            messageInput.value = "";
+            recognition.start();
+        }
+
+        function speak(text) {
+            if (!voiceEnabled || !("speechSynthesis" in window)) {
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "en-US";
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function sendMessage(fromVoice = false) {
             const message = messageInput.value.trim();
 
             if (!message) return;
@@ -444,6 +559,7 @@
             addMessage(message, "user");
             messageInput.value = "";
             setLoading(true);
+            voiceStatus.textContent = "";
 
             try {
                 const response = await fetch("/chat", {
@@ -464,7 +580,12 @@
                     return;
                 }
 
-                addMessage(data.reply || "No response received.", "jarvis");
+                const reply = data.reply || "No response received.";
+                addMessage(reply, "jarvis");
+
+                if (fromVoice) {
+                    speak(reply);
+                }
 
             } catch (error) {
                 addMessage("Could not contact Jarvis. Check if the backend server is running.", "jarvis");
@@ -476,7 +597,7 @@
 
         messageInput.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
-                sendMessage();
+                sendMessage(false);
             }
         });
     </script>

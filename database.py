@@ -12,13 +12,15 @@ def init_db():
     cursor = conn.cursor()
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            task TEXT NOT NULL,
-            status TEXT DEFAULT 'pending'
-        )
-    """)
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        task TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        UNIQUE(session_id, local_id)
+    )
+""")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notes (
