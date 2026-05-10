@@ -91,5 +91,5 @@ async def voice_chat(
         print("Voice backend error:", e)
         return {
             "transcript": "",
-            "reply": f"Voice backend error: {str(e)}"
+            "reply": f"I heard you, but Jarvis had an agent error: {str(e)}"
         }
