@@ -424,6 +424,7 @@
         let recognition = null;
         let isListening = false;
         let voiceEnabled = true;
+        console.log("SpeechRecognition support:", SpeechRecognition);
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -520,8 +521,10 @@
         }
 
         function toggleVoice() {
+            console.log("Mic button clicked");
+
             if (!recognition) {
-                voiceStatus.textContent = "Voice input is not supported.";
+                voiceStatus.textContent = "Voice input is not supported in this browser.";
                 return;
             }
 
@@ -532,9 +535,14 @@
 
             window.speechSynthesis.cancel();
             messageInput.value = "";
-            recognition.start();
-        }
 
+            try {
+                recognition.start();
+            } catch (error) {
+                voiceStatus.textContent = "Could not start microphone: " + error.message;
+                console.log(error);
+            }
+        }
         function speak(text) {
             if (!voiceEnabled || !("speechSynthesis" in window)) {
                 return;
