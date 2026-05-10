@@ -272,36 +272,47 @@ def get_current_time() -> str:
     now = datetime.now()
     return now.strftime("%A, %d %B %Y, %I:%M %p")
 
-@tool 
+@tool
 def web_search(query: str) -> str:
-    """Search web"""
+    """Search web."""
     try:
         response = tavily_client.search(
             query=query,
             search_depth="basic",
-            max_results=3
+            max_results=3,
+            include_answer=True,
+            include_raw_content=False
         )
 
+        answer = response.get("answer")
         results = response.get("results", [])
 
-        if not results:
-            return "No web results found"
-        
-        formatted_results = []
+        output = []
 
-        for item in results:
-            title = item.get("title", "No title")
-            url = item.get("url", "")
-            content = item.get("content", "")
+        if answer:
+            output.append(f"Answer:\n{answer}")
 
-            formatted_results.append(
-                f"Title: {title}\nURL: {url}\nSummary: {content}"
-            )
-        
-        return "\n\n".join(formatted_results)
+        if results:
+            output.append("Sources:")
+
+            for index, item in enumerate(results, start=1):
+                title = item.get("title", "No title")
+                url = item.get("url", "")
+                content = item.get("content", "")
+
+                output.append(
+                    f"{index}. {title}\n"
+                    f"{content}\n"
+                    f"{url}"
+                )
+
+        if not output:
+            return "No web results found."
+
+        return "\n\n".join(output)
+
     except Exception as e:
         return f"Web search error: {str(e)}"
-
 
 jarvis_tools = [
     add_task,
