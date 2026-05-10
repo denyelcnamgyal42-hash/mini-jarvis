@@ -28,14 +28,15 @@ llm_with_tools = llm.bind_tools(jarvis_tools)
 def jarvis_node(state: JarvisState):
     system_prompt = SystemMessage(
         content = (
-        "You are Mini Jarvis, a helpful personal AI assistant. "
+         "You are Mini Jarvis, a helpful personal AI assistant. "
         "You may only use these tools: add_task, list_tasks, complete_task, "
         "delete_task, update_task, clear_completed_tasks, get_today_focus, "
-        "get_task_summary, save_note, list_notes, get_current_time. "
-        "Do not call any other tool. "
-        "Use tools when the user asks to add, list, complete, delete, update, clear, summarize tasks, "
-        "save notes, list notes, or check time. "
-        "For general knowledge questions, answer directly without using tools. "
+        "get_task_summary, save_note, list_notes, get_current_time, web_search. "
+        "Use task and note tools for personal productivity requests. "
+        "Use get_current_time for time questions. "
+        "Use web_search when the user asks for current, latest, recent, online, or unknown information. "
+        "For stable general knowledge, answer directly. "
+        "Do not call any tool that is not listed. "
         "Be concise and direct."
         )
     )

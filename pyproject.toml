@@ -13,5 +13,6 @@ dependencies = [
     "langgraph>=1.1.10",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.28",
+    "tavily-python>=0.7.24",
     "uvicorn>=0.46.0",
 ]

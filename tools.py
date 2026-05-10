@@ -1,6 +1,10 @@
 from datetime import datetime
 from langchain_core.tools import tool
 from database import get_connection
+import os 
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 
 current_session_id = "default"
@@ -268,6 +272,36 @@ def get_current_time() -> str:
     now = datetime.now()
     return now.strftime("%A, %d %B %Y, %I:%M %p")
 
+@tool 
+def web_search(query: str) -> str:
+    """Search web"""
+    try:
+        response = tavily_client.search(
+            query=query,
+            search_depth="basic",
+            max_results=3
+        )
+
+        results = response.get("results", [])
+
+        if not results:
+            return "No web results found"
+        
+        formatted_results = []
+
+        for item in results:
+            title = item.get("title", "No title")
+            url = item.get("url", "")
+            content = item.get("content", "")
+
+            formatted_results.append(
+                f"Title: {title}\nURL: {url}\nSummary: {content}"
+            )
+        
+        return "\n\n".join(formatted_results)
+    except Exception as e:
+        return f"Web search error: {str(e)}"
+
 
 jarvis_tools = [
     add_task,
@@ -280,5 +314,6 @@ jarvis_tools = [
     get_task_summary,
     save_note,
     list_notes,
-    get_current_time
+    get_current_time,
+    web_search
 ]
