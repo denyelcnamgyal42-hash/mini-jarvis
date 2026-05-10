@@ -89,6 +89,140 @@ def complete_task(task_id: int) -> str:
 
 
 @tool
+def delete_task(task_id: int) -> str:
+    """Delete task."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM tasks
+        WHERE local_id = ? AND session_id = ?
+        """,
+        (task_id, current_session_id)
+    )
+
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        conn.close()
+        return f"No task found with ID {task_id}."
+
+    conn.close()
+    return f"Task {task_id} deleted."
+
+
+@tool
+def update_task(task_id: int, new_task: str) -> str:
+    """Update task."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET task = ?
+        WHERE local_id = ? AND session_id = ?
+        """,
+        (new_task, task_id, current_session_id)
+    )
+
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        conn.close()
+        return f"No task found with ID {task_id}."
+
+    conn.close()
+    return f"Task {task_id} updated to: {new_task}"
+
+
+@tool
+def clear_completed_tasks() -> str:
+    """Clear completed tasks."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM tasks
+        WHERE status = ? AND session_id = ?
+        """,
+        ("done", current_session_id)
+    )
+
+    deleted_count = cursor.rowcount
+
+    conn.commit()
+    conn.close()
+
+    return f"Cleared {deleted_count} completed task(s)."
+
+
+@tool
+def get_today_focus() -> str:
+    """Get focus task."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT local_id, task
+        FROM tasks
+        WHERE session_id = ? AND status = ?
+        ORDER BY local_id
+        LIMIT 1
+        """,
+        (current_session_id, "pending")
+    )
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return "You have no pending tasks. Good job."
+
+    return f"Today's focus: Task {row[0]} - {row[1]}"
+
+
+@tool
+def get_task_summary() -> str:
+    """Summarize tasks."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT status, COUNT(*)
+        FROM tasks
+        WHERE session_id = ?
+        GROUP BY status
+        """,
+        (current_session_id,)
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        return "You have no tasks yet."
+
+    summary = {
+        "pending": 0,
+        "done": 0
+    }
+
+    for status, count in rows:
+        summary[status] = count
+
+    return (
+        f"Task summary: "
+        f"{summary['pending']} pending, "
+        f"{summary['done']} completed."
+    )
+
+
+@tool
 def save_note(note: str) -> str:
     """Save note."""
     conn = get_connection()
@@ -139,6 +273,11 @@ jarvis_tools = [
     add_task,
     list_tasks,
     complete_task,
+    delete_task,
+    update_task,
+    clear_completed_tasks,
+    get_today_focus,
+    get_task_summary,
     save_note,
     list_notes,
     get_current_time

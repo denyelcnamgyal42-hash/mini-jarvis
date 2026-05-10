@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from database import init_db
+from database import init_db, get_dashboard_data
 
 from agent import ask_jarvis 
 
@@ -92,4 +92,20 @@ async def voice_chat(
         return {
             "transcript": "",
             "reply": f"I heard you, but Jarvis had an agent error: {str(e)}"
+        }
+    
+@app.get("/dashboard")
+def dashboard(session_id: str):
+    try:
+        data = get_dashboard_data(session_id)
+        return data
+
+    except Exception as e:
+        print("Dashboard error:", e)
+        return {
+            "pending_tasks": 0,
+            "completed_tasks": 0,
+            "notes_count": 0,
+            "today_focus": None,
+            "error": str(e)
         }

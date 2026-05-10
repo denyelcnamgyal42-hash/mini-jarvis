@@ -136,6 +136,60 @@
             transform: scale(0.98);
         }
 
+        .dashboard {
+            padding-top: 14px;
+        }
+
+        .greeting-card {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 35%),
+                rgba(15, 23, 42, 0.8);
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .greeting-card p {
+            margin: 0 0 6px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .greeting-card h2 {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.35;
+            color: #e0f2fe;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card span {
+            display: block;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .stat-card p {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
         .chat-box {
             flex: 1;
             overflow-y: auto;
@@ -376,7 +430,32 @@
                     <button class="chip" onclick="quickSend('what time is it?')">Time</button>
                     <button class="chip" onclick="quickSend('list notes')">Notes</button>
                     <button class="chip" onclick="quickFill('add task ')">Add task</button>
+                    <button class="chip" onclick="quickSend('what should I focus on today?')">Focus</button>
                 </div>
+
+                <section class="dashboard">
+                    <div class="greeting-card">
+                        <p id="greetingText">Welcome back.</p>
+                        <h2 id="focusText">Loading your focus...</h2>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span id="pendingCount">0</span>
+                            <p>Pending</p>
+                        </div>
+
+                        <div class="stat-card">
+                            <span id="completedCount">0</span>
+                            <p>Done</p>
+                        </div>
+
+                        <div class="stat-card">
+                            <span id="notesCount">0</span>
+                            <p>Notes</p>
+                        </div>
+                    </div>
+                </section>
             </header>
 
             <section id="chatBox" class="chat-box">
@@ -418,6 +497,12 @@
         const typingIndicator = document.getElementById("typingIndicator");
         const voiceStatus = document.getElementById("voiceStatus");
 
+        const greetingText = document.getElementById("greetingText");
+        const focusText = document.getElementById("focusText");
+        const pendingCount = document.getElementById("pendingCount");
+        const completedCount = document.getElementById("completedCount");
+        const notesCount = document.getElementById("notesCount");
+
         let sessionId = localStorage.getItem("jarvis_session_id");
 
         if (!sessionId) {
@@ -434,6 +519,43 @@
                 hour: "2-digit",
                 minute: "2-digit"
             });
+        }
+
+        function getGreeting() {
+            const hour = new Date().getHours();
+
+            if (hour < 12) {
+                return "Good morning.";
+            }
+
+            if (hour < 18) {
+                return "Good afternoon.";
+            }
+
+            return "Good evening.";
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`/dashboard?session_id=${sessionId}`);
+                const data = await response.json();
+
+                greetingText.textContent = getGreeting();
+
+                pendingCount.textContent = data.pending_tasks ?? 0;
+                completedCount.textContent = data.completed_tasks ?? 0;
+                notesCount.textContent = data.notes_count ?? 0;
+
+                if (data.today_focus) {
+                    focusText.textContent = `Today's focus: ${data.today_focus.task}`;
+                } else {
+                    focusText.textContent = "No pending tasks. You're clear for now.";
+                }
+
+            } catch (error) {
+                greetingText.textContent = "Welcome back.";
+                focusText.textContent = "Could not load dashboard.";
+            }
         }
 
         function addMessage(text, sender) {
@@ -560,6 +682,7 @@
                 addMessage("Could not process voice message. Check the backend logs.", "jarvis");
             } finally {
                 setLoading(false);
+                loadDashboard();
                 voiceStatus.textContent = "";
             }
         }
@@ -616,6 +739,7 @@
                 addMessage("Could not contact Jarvis. Check if the backend server is running.", "jarvis");
             } finally {
                 setLoading(false);
+                loadDashboard();
                 messageInput.focus();
             }
         }
@@ -625,6 +749,8 @@
                 sendMessage();
             }
         });
+
+        loadDashboard();
     </script>
 </body>
 
