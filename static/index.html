@@ -10,136 +10,430 @@
     <style>
         * {
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        :root {
+            --bg-main: #020617;
+            --bg-card: rgba(15, 23, 42, 0.92);
+            --bg-soft: #111827;
+            --border-soft: rgba(148, 163, 184, 0.25);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-dark: #0284c7;
+            --user-msg: linear-gradient(135deg, #2563eb, #1d4ed8);
+            --jarvis-msg: #1e293b;
         }
 
         body {
             margin: 0;
-            background: #0f172a;
-            color: white;
-            height: 100vh;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.18), transparent 35%),
+                var(--bg-main);
+            color: var(--text-main);
             display: flex;
             justify-content: center;
+            align-items: center;
+        }
+
+        .phone-shell {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            padding: 12px;
         }
 
         .app {
             width: 100%;
-            max-width: 600px;
-            height: 100vh;
+            height: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: 28px;
             display: flex;
             flex-direction: column;
-            padding: 16px;
+            overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(16px);
         }
 
         .header {
-            padding: 16px 0;
-            border-bottom: 1px solid #334155;
+            padding: 20px 18px 14px;
+            border-bottom: 1px solid var(--border-soft);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.72));
         }
 
-        .header h1 {
+        .top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .orb {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 30%, #ffffff, #7dd3fc 22%, #0284c7 58%, #0f172a 100%);
+            box-shadow: 0 0 26px rgba(56, 189, 248, 0.75);
+            flex-shrink: 0;
+        }
+
+        .brand-text h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 22px;
+            letter-spacing: -0.04em;
         }
 
-        .header p {
-            margin: 6px 0 0;
-            color: #94a3b8;
-            font-size: 14px;
+        .brand-text p {
+            margin: 3px 0 0;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .status-pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(34, 197, 94, 0.12);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-top: 14px;
+            scrollbar-width: none;
+        }
+
+        .quick-actions::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            border: 1px solid var(--border-soft);
+            background: rgba(30, 41, 59, 0.85);
+            color: #dbeafe;
+            padding: 9px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .chip:active {
+            transform: scale(0.98);
         }
 
         .chat-box {
             flex: 1;
             overflow-y: auto;
-            padding: 16px 0;
+            padding: 18px 14px;
+            scroll-behavior: smooth;
+        }
+
+        .message-row {
+            display: flex;
+            margin-bottom: 14px;
+        }
+
+        .message-row.user-row {
+            justify-content: flex-end;
+        }
+
+        .message-row.jarvis-row {
+            justify-content: flex-start;
         }
 
         .message {
+            max-width: 82%;
             padding: 12px 14px;
-            margin-bottom: 12px;
-            border-radius: 14px;
-            line-height: 1.4;
+            border-radius: 18px;
+            line-height: 1.45;
             white-space: pre-wrap;
+            font-size: 15px;
+            word-wrap: break-word;
         }
 
-        .user {
-            background: #2563eb;
-            margin-left: 40px;
+        .message.user {
+            background: var(--user-msg);
+            color: white;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
         }
 
-        .jarvis {
-            background: #1e293b;
-            margin-right: 40px;
+        .message.jarvis {
+            background: var(--jarvis-msg);
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-bottom-left-radius: 6px;
+        }
+
+        .timestamp {
+            margin-top: 5px;
+            font-size: 11px;
+            color: rgba(226, 232, 240, 0.55);
+        }
+
+        .typing {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 0 16px 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: bounce 1s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: translateY(-5px);
+                opacity: 1;
+            }
         }
 
         .input-area {
+            padding: 12px;
+            border-top: 1px solid var(--border-soft);
+            background: rgba(2, 6, 23, 0.72);
+        }
+
+        .input-wrapper {
             display: flex;
+            align-items: center;
             gap: 8px;
-            padding-top: 12px;
-            border-top: 1px solid #334155;
+            background: #0f172a;
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            border-radius: 18px;
+            padding: 8px;
         }
 
         input {
             flex: 1;
-            padding: 14px;
-            border-radius: 12px;
+            min-width: 0;
+            padding: 12px 10px;
+            background: transparent;
+            color: white;
             border: none;
             outline: none;
             font-size: 16px;
         }
 
-        button {
-            padding: 14px 18px;
-            border: none;
-            border-radius: 12px;
-            background: #38bdf8;
-            color: #020617;
-            font-weight: bold;
-            cursor: pointer;
+        input::placeholder {
+            color: #64748b;
         }
 
-        button:disabled {
-            opacity: 0.6;
+        button {
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .send-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            background: var(--accent);
+            color: #020617;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            transition: 0.2s ease;
+        }
+
+        .send-btn:hover {
+            background: #7dd3fc;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .send-icon {
+            font-size: 20px;
+            transform: translateX(1px);
+        }
+
+        @media (max-width: 520px) {
+            body {
+                align-items: stretch;
+            }
+
+            .phone-shell {
+                max-width: none;
+                height: 100dvh;
+                padding: 0;
+            }
+
+            .app {
+                border-radius: 0;
+                border: none;
+            }
+
+            .header {
+                padding-top: 18px;
+            }
+
+            .message {
+                max-width: 88%;
+                font-size: 15px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="app">
-        <div class="header">
-            <h1>Mini Jarvis</h1>
-            <p>Your mobile AI agent assistant</p>
-        </div>
+    <div class="phone-shell">
+        <main class="app">
+            <header class="header">
+                <div class="top-row">
+                    <div class="brand">
+                        <div class="orb"></div>
+                        <div class="brand-text">
+                            <h1>Mini Jarvis</h1>
+                            <p>Your personal AI agent</p>
+                        </div>
+                    </div>
 
-        <div id="chatBox" class="chat-box">
-            <div class="message jarvis">
-                Hello. I am Mini Jarvis. Ask me to add tasks, save notes, list tasks, or check the time.
+                    <div class="status-pill">Online</div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="chip" onclick="quickSend('list tasks')">List tasks</button>
+                    <button class="chip" onclick="quickSend('what time is it?')">Time</button>
+                    <button class="chip" onclick="quickSend('list notes')">Notes</button>
+                    <button class="chip" onclick="quickFill('add task ')">Add task</button>
+                </div>
+            </header>
+
+            <section id="chatBox" class="chat-box">
+                <div class="message-row jarvis-row">
+                    <div>
+                        <div class="message jarvis">
+                            Hello. I am Mini Jarvis. I can manage your tasks, save notes, and answer simple questions.
+                        </div>
+                        <div class="timestamp">Jarvis</div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="typingIndicator" class="typing">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                Jarvis is thinking...
             </div>
-        </div>
 
-        <div class="input-area">
-            <input id="messageInput" placeholder="Message Jarvis..." />
-            <button id="sendBtn" onclick="sendMessage()">Send</button>
-        </div>
+            <footer class="input-area">
+                <div class="input-wrapper">
+                    <input id="messageInput" placeholder="Ask Jarvis anything..." autocomplete="off" />
+                    <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+                        <span class="send-icon">➤</span>
+                    </button>
+                </div>
+            </footer>
+        </main>
     </div>
 
     <script>
         const chatBox = document.getElementById("chatBox");
         const messageInput = document.getElementById("messageInput");
         const sendBtn = document.getElementById("sendBtn");
-
-        function addMessage(text, sender) {
-            const div = document.createElement("div");
-            div.className = `message ${sender}`;
-            div.textContent = text;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        const typingIndicator = document.getElementById("typingIndicator");
 
         let sessionId = localStorage.getItem("jarvis_session_id");
 
         if (!sessionId) {
             sessionId = crypto.randomUUID();
             localStorage.setItem("jarvis_session_id", sessionId);
+        }
+
+        function getTime() {
+            return new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function addMessage(text, sender) {
+            const row = document.createElement("div");
+            row.className = `message-row ${sender}-row`;
+
+            const wrapper = document.createElement("div");
+
+            const bubble = document.createElement("div");
+            bubble.className = `message ${sender}`;
+            bubble.textContent = text;
+
+            const time = document.createElement("div");
+            time.className = "timestamp";
+            time.textContent = sender === "user" ? `You • ${getTime()}` : `Jarvis • ${getTime()}`;
+
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(time);
+            row.appendChild(wrapper);
+
+            chatBox.appendChild(row);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function setLoading(isLoading) {
+            sendBtn.disabled = isLoading;
+            typingIndicator.style.display = isLoading ? "flex" : "none";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function quickFill(text) {
+            messageInput.value = text;
+            messageInput.focus();
+        }
+
+        function quickSend(text) {
+            messageInput.value = text;
+            sendMessage();
         }
 
         async function sendMessage() {
@@ -149,8 +443,7 @@
 
             addMessage(message, "user");
             messageInput.value = "";
-            sendBtn.disabled = true;
-            sendBtn.textContent = "...";
+            setLoading(true);
 
             try {
                 const response = await fetch("/chat", {
@@ -158,18 +451,27 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ message: message, session_id: sessionId })
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
                 });
 
                 const data = await response.json();
-                addMessage(data.reply, "jarvis");
-            } catch (error) {
-                addMessage("Error: Could not contact Jarvis.", "jarvis");
-            }
 
-            sendBtn.disabled = false;
-            sendBtn.textContent = "Send";
-            messageInput.focus();
+                if (!response.ok) {
+                    addMessage(data.detail || "Server error.", "jarvis");
+                    return;
+                }
+
+                addMessage(data.reply || "No response received.", "jarvis");
+
+            } catch (error) {
+                addMessage("Could not contact Jarvis. Check if the backend server is running.", "jarvis");
+            } finally {
+                setLoading(false);
+                messageInput.focus();
+            }
         }
 
         messageInput.addEventListener("keydown", function (event) {
