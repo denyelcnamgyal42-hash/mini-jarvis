@@ -107,7 +107,7 @@ async def voice_chat(
             transcription = groq_client.audio.transcriptions.create(
                 file=file,
                 model="whisper-large-v3",
-                response_format="text"
+                response_format="text",
                 language="en",
                 prompt=(
         "The speaker is talking to an AI assistant called Mini Jarvis. "
