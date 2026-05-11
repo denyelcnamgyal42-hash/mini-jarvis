@@ -3,414 +3,703 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Mini Jarvis</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Jarvis</title>
     <link rel="manifest" href="/static/manifest.json" />
-    <meta name="theme-color" content="#020617" />
+    <meta name="theme-color" content="#000a0f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Jarvis" />
     <link rel="apple-touch-icon" href="/static/icon-192.png" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet" />
 
     <style>
         * {
             box-sizing: border-box;
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent
         }
 
         :root {
-            --bg: #020617;
-            --panel: rgba(15, 23, 42, 0.88);
-            --panel-soft: rgba(30, 41, 59, 0.9);
-            --border: rgba(148, 163, 184, 0.22);
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --accent: #38bdf8;
-            --accent-2: #0ea5e9;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --warning: #f59e0b;
+            --gold: #c8a84b;
+            --gold-dim: #7a6228;
+            --cyan: #00d4ff;
+            --cyan-dim: #004d5e;
+            --red: #ff3131;
+            --bg: #000a0f;
+            --panel: rgba(0, 20, 30, 0.85);
+            --glow-cyan: 0 0 12px rgba(0, 212, 255, 0.7), 0 0 40px rgba(0, 212, 255, 0.25);
+            --glow-gold: 0 0 12px rgba(200, 168, 75, 0.7), 0 0 40px rgba(200, 168, 75, 0.2);
+            --font-hud: 'Rajdhani', sans-serif;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-title: 'Orbitron', sans-serif;
         }
 
+        html,
         body {
-            margin: 0;
-            height: 100vh;
-            background:
-                radial-gradient(circle at 50% 20%, rgba(56, 189, 248, 0.14), transparent 32%),
-                radial-gradient(circle at 20% 90%, rgba(37, 99, 235, 0.18), transparent 30%),
-                var(--bg);
-            color: var(--text);
+            height: 100%;
             overflow: hidden;
+            background: var(--bg)
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 212, 255, 0.018) 2px, rgba(0, 212, 255, 0.018) 4px);
+            pointer-events: none;
+            z-index: 999;
+            animation: scanMove 8s linear infinite
+        }
+
+        @keyframes scanMove {
+            0% {
+                background-position: 0 0
+            }
+
+            100% {
+                background-position: 0 200px
+            }
+        }
+
+        .hex-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            opacity: 0.18
         }
 
         .app {
+            position: relative;
             width: 100%;
-            max-width: 720px;
+            max-width: 430px;
             height: 100vh;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            position: relative;
+            z-index: 1;
+            font-family: var(--font-hud)
         }
 
-        .top-bar {
-            padding: 18px 18px 10px;
+        .hud-top {
+            padding: max(14px, env(safe-area-inset-top)) 16px 10px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            position: relative
         }
 
-        .brand h1 {
-            margin: 0;
-            font-size: 19px;
-            letter-spacing: -0.03em;
+        .hud-top::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0.5
         }
 
-        .brand p {
-            margin: 3px 0 0;
-            font-size: 12px;
-            color: var(--muted);
+        .brand-title {
+            font-family: var(--font-title);
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--cyan);
+            text-shadow: var(--glow-cyan)
         }
 
-        .online {
-            font-size: 12px;
-            color: #86efac;
+        .brand-sub {
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            color: var(--gold);
+            opacity: 0.8;
+            margin-top: 2px;
+            font-family: var(--font-mono)
+        }
+
+        .status-cluster {
+            text-align: right
+        }
+
+        .status-live {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #00ff88;
+            letter-spacing: 0.12em;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
+            justify-content: flex-end
         }
 
-        .online-dot {
-            width: 7px;
-            height: 7px;
+        .live-dot {
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+            background: #00ff88;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.9);
+            animation: blink 2s infinite
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        .sys-time {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--cyan);
+            margin-top: 3px;
+            letter-spacing: 0.08em
+        }
+
+        .hud-bar-left,
+        .hud-bar-right {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, transparent 5%, var(--cyan-dim) 20%, var(--cyan) 50%, var(--cyan-dim) 80%, transparent 95%);
+            z-index: 2;
+            opacity: 0.6
+        }
+
+        .hud-bar-left {
+            left: 0
+        }
+
+        .hud-bar-right {
+            right: 0
+        }
+
+        .hud-bar-left::after,
+        .hud-bar-right::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 12px;
+            height: 100%;
+            background: inherit;
+            opacity: 0.15;
+            filter: blur(6px)
+        }
+
+        .hud-bar-left::after {
+            left: 0
+        }
+
+        .hud-bar-right::after {
+            right: 0
+        }
+
+        .corner {
+            position: fixed;
+            width: 28px;
+            height: 28px;
+            z-index: 3;
+            opacity: 0.7
+        }
+
+        .corner-tl {
+            top: 6px;
+            left: 6px;
+            border-top: 2px solid var(--gold);
+            border-left: 2px solid var(--gold)
+        }
+
+        .corner-tr {
+            top: 6px;
+            right: 6px;
+            border-top: 2px solid var(--gold);
+            border-right: 2px solid var(--gold)
+        }
+
+        .corner-bl {
+            bottom: 6px;
+            left: 6px;
+            border-bottom: 2px solid var(--gold);
+            border-left: 2px solid var(--gold)
+        }
+
+        .corner-br {
+            bottom: 6px;
+            right: 6px;
+            border-bottom: 2px solid var(--gold);
+            border-right: 2px solid var(--gold)
         }
 
         .main {
             flex: 1;
             display: flex;
             flex-direction: column;
+            align-items: center;
             justify-content: center;
-            padding: 16px;
-            min-height: 0;
+            padding: 10px 16px;
+            min-height: 0
         }
 
-        .orb-section {
-            text-align: center;
-            margin-bottom: 20px;
+        .reactor-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px
         }
 
-        .orb-button {
-            width: 172px;
-            height: 172px;
+        .reactor-ring {
+            position: absolute;
             border-radius: 50%;
-            border: 1px solid rgba(56, 189, 248, 0.45);
-            background:
-                radial-gradient(circle at 35% 30%, #ffffff 0%, #bae6fd 10%, #38bdf8 32%, #0369a1 60%, #020617 100%);
-            box-shadow:
-                0 0 30px rgba(56, 189, 248, 0.75),
-                0 0 90px rgba(56, 189, 248, 0.28),
-                inset 0 0 28px rgba(255, 255, 255, 0.2);
+            border: 1px solid;
+            animation: spin linear infinite
+        }
+
+        .ring-1 {
+            width: 200px;
+            height: 200px;
+            border-color: rgba(0, 212, 255, 0.35);
+            animation-duration: 18s
+        }
+
+        .ring-2 {
+            width: 220px;
+            height: 220px;
+            border-color: rgba(200, 168, 75, 0.2);
+            animation-duration: 28s;
+            animation-direction: reverse
+        }
+
+        .ring-3 {
+            width: 240px;
+            height: 240px;
+            border-color: rgba(0, 212, 255, 0.12);
+            animation-duration: 40s
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg)
+            }
+
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .ring-ticks {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            animation: spin 18s linear infinite
+        }
+
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 8px;
+            background: var(--cyan);
+            opacity: 0.7;
+            left: 50%;
+            transform-origin: 0 100px
+        }
+
+        .orb-btn {
+            width: 148px;
+            height: 148px;
+            border-radius: 50%;
+            border: none;
             cursor: pointer;
             position: relative;
-            color: white;
-            font-size: 42px;
-            transition: 0.2s ease;
+            background: radial-gradient(circle at 38% 30%, #e8f9ff 0%, #7de8ff 8%, #00d4ff 28%, #005a7a 55%, #001a26 80%, #000a0f 100%);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 80px rgba(0, 212, 255, 0.3), inset 0 0 30px rgba(0, 212, 255, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            outline: none
         }
 
-        .orb-button::before,
-        .orb-button::after {
-            content: "";
-            position: absolute;
-            inset: -18px;
-            border-radius: 50%;
-            border: 1px solid rgba(56, 189, 248, 0.22);
-            animation: pulseRing 2.8s infinite ease-out;
+        .orb-btn:active {
+            transform: scale(0.96)
         }
 
-        .orb-button::after {
-            animation-delay: 1.4s;
+        .orb-btn.recording {
+            background: radial-gradient(circle at 38% 30%, #fff0f0 0%, #ff9a9a 12%, #ff3131 35%, #7f0000 65%, #1a0000 90%);
+            box-shadow: 0 0 40px rgba(255, 49, 49, 0.9), 0 0 100px rgba(255, 49, 49, 0.3)
         }
 
-        .orb-button:hover {
-            transform: scale(1.03);
+        .orb-btn.thinking {
+            animation: orbPulse 1.4s ease-in-out infinite
         }
 
-        .orb-button.recording {
-            background:
-                radial-gradient(circle at 35% 30%, #fee2e2 0%, #f87171 20%, #ef4444 48%, #7f1d1d 100%);
-            border-color: rgba(248, 113, 113, 0.8);
-            box-shadow:
-                0 0 34px rgba(239, 68, 68, 0.8),
-                0 0 100px rgba(239, 68, 68, 0.25);
-        }
-
-        .orb-button.thinking {
-            animation: orbThinking 1.2s infinite ease-in-out;
-        }
-
-        @keyframes pulseRing {
-            0% {
-                transform: scale(0.82);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(1.25);
-                opacity: 0;
-            }
-        }
-
-        @keyframes orbThinking {
+        @keyframes orbPulse {
 
             0%,
             100% {
-                filter: brightness(1);
+                box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 80px rgba(0, 212, 255, 0.3)
             }
 
             50% {
-                filter: brightness(1.35);
+                box-shadow: 0 0 60px rgba(0, 212, 255, 1), 0 0 130px rgba(0, 212, 255, 0.5)
             }
         }
 
-        .status-text {
-            margin-top: 28px;
-            font-size: 15px;
-            color: var(--muted);
-            min-height: 22px;
+        .orb-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: -1px;
+            font-family: var(--font-title);
+            font-weight: 900
         }
 
-        .hint {
+        .pulse-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            animation: pulseOut 3s ease-out infinite
+        }
+
+        .pulse-ring:nth-child(1) {
+            width: 148px;
+            height: 148px;
+            animation-delay: 0s
+        }
+
+        .pulse-ring:nth-child(2) {
+            width: 148px;
+            height: 148px;
+            animation-delay: 1.5s
+        }
+
+        @keyframes pulseOut {
+            0% {
+                transform: scale(1);
+                opacity: 0.6
+            }
+
+            100% {
+                transform: scale(1.8);
+                opacity: 0
+            }
+        }
+
+        .status-line {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--cyan);
+            letter-spacing: 0.08em;
+            min-height: 20px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 212, 255, 0.6)
+        }
+
+        .tap-hint {
+            font-size: 11px;
+            color: rgba(200, 168, 75, 0.6);
+            letter-spacing: 0.2em;
             margin-top: 5px;
-            font-size: 12px;
-            color: #64748b;
+            text-align: center;
+            font-family: var(--font-mono)
         }
 
         .response-panel {
             width: 100%;
-            max-height: 42vh;
+            max-height: 38vh;
             overflow-y: auto;
-            border: 1px solid var(--border);
-            background: var(--panel);
-            border-radius: 22px;
-            padding: 14px;
+            margin-top: 14px;
+            background: rgba(0, 18, 28, 0.9);
+            border: 1px solid rgba(0, 212, 255, 0.25);
+            border-radius: 4px;
+            padding: 14px 16px;
             display: none;
-            backdrop-filter: blur(16px);
+            scrollbar-width: thin;
+            scrollbar-color: var(--cyan-dim) transparent;
+            position: relative
+        }
+
+        .response-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 4px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.04) 0%, transparent 60%);
+            pointer-events: none
         }
 
         .response-panel.show {
-            display: block;
+            display: block
         }
 
-        .response-title {
-            font-size: 12px;
-            color: var(--accent);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .response-text {
-            white-space: pre-wrap;
-            line-height: 1.5;
-            font-size: 15px;
-            color: #e5e7eb;
-        }
-
-        .task-list {
-            display: grid;
+        .resp-header {
+            display: flex;
+            align-items: center;
             gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.15)
         }
 
-        .task-card {
-            background: rgba(30, 41, 59, 0.88);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 14px;
-            padding: 11px;
+        .resp-label {
+            font-family: var(--font-title);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--gold)
         }
 
-        .task-card strong {
-            color: #e0f2fe;
+        .resp-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--gold-dim), transparent);
+            opacity: 0.5
+        }
+
+        .resp-text {
+            font-family: var(--font-hud);
             font-size: 14px;
+            line-height: 1.6;
+            color: #c8e8f0;
+            white-space: pre-wrap
         }
 
-        .task-card p {
-            margin: 5px 0 0;
+        .task-grid {
+            display: grid;
+            gap: 8px
+        }
+
+        .task-item {
+            border-left: 2px solid var(--cyan);
+            padding: 8px 10px;
+            background: rgba(0, 212, 255, 0.06);
+            border-radius: 0 4px 4px 0
+        }
+
+        .task-item strong {
+            color: var(--cyan);
+            font-size: 13px;
+            font-family: var(--font-mono)
+        }
+
+        .task-item p {
             font-size: 12px;
-            color: var(--muted);
+            color: #7baab8;
+            margin-top: 3px
         }
 
-        .quick-row {
+        .chips-row {
             display: flex;
             gap: 8px;
-            padding: 10px 14px;
+            padding: 8px 14px;
             overflow-x: auto;
             scrollbar-width: none;
+            flex-shrink: 0
         }
 
-        .quick-row::-webkit-scrollbar {
-            display: none;
+        .chips-row::-webkit-scrollbar {
+            display: none
         }
 
         .chip {
-            border: 1px solid var(--border);
-            background: rgba(30, 41, 59, 0.82);
-            color: #dbeafe;
-            padding: 9px 12px;
-            border-radius: 999px;
-            font-size: 13px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            background: rgba(0, 20, 30, 0.7);
+            color: var(--cyan);
+            padding: 7px 13px;
+            border-radius: 2px;
+            font-size: 11px;
             white-space: nowrap;
             cursor: pointer;
+            font-family: var(--font-mono);
+            letter-spacing: 0.08em;
+            transition: border-color 0.2s, background 0.2s;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)
         }
 
-        .chip:hover {
-            border-color: rgba(56, 189, 248, 0.5);
+        .chip:active {
+            background: rgba(0, 212, 255, 0.12);
+            border-color: var(--cyan)
         }
 
-        .bottom {
-            padding: 12px;
-            border-top: 1px solid rgba(148, 163, 184, 0.12);
-            background: rgba(2, 6, 23, 0.85);
+        .footer {
+            padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+            background: rgba(0, 6, 12, 0.92);
+            border-top: 1px solid rgba(0, 212, 255, 0.18)
         }
 
-        .input-wrapper {
+        .input-row {
             display: flex;
             gap: 8px;
             align-items: center;
-            background: #020617;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 8px;
+            background: rgba(0, 16, 24, 0.9);
+            border: 1px solid rgba(0, 212, 255, 0.28);
+            border-radius: 3px;
+            padding: 6px;
+            box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.04)
         }
 
         .icon-btn {
-            width: 42px;
-            height: 42px;
-            border: none;
-            border-radius: 13px;
-            background: var(--panel-soft);
-            color: white;
-            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(0, 212, 255, 0.25);
+            border-radius: 3px;
+            background: rgba(0, 212, 255, 0.06);
+            color: var(--cyan);
+            font-size: 16px;
             cursor: pointer;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-hud);
+            transition: background 0.2s;
+            outline: none
         }
 
-        .icon-btn:hover {
-            background: #334155;
+        .icon-btn:active {
+            background: rgba(0, 212, 255, 0.15)
         }
 
         .send-btn {
-            background: var(--accent);
-            color: #020617;
-            font-weight: 800;
+            background: rgba(0, 212, 255, 0.15);
+            border-color: var(--cyan)
         }
 
-        input {
+        .send-btn:active {
+            background: rgba(0, 212, 255, 0.35)
+        }
+
+        .msg-input {
             flex: 1;
             min-width: 0;
             border: none;
             outline: none;
             background: transparent;
-            color: white;
-            font-size: 16px;
-            padding: 10px 4px;
+            color: #d4eef5;
+            font-size: 14px;
+            font-family: var(--font-hud);
+            padding: 10px 6px;
+            letter-spacing: 0.04em
         }
 
-        input::placeholder {
-            color: #64748b;
+        .msg-input::placeholder {
+            color: rgba(0, 212, 255, 0.3);
+            font-family: var(--font-mono);
+            font-size: 12px
         }
 
         .footer-note {
-            margin-top: 6px;
-            min-height: 16px;
-            font-size: 12px;
-            color: var(--muted);
-            padding-left: 3px;
-        }
-
-        @media (max-width: 720px) {
-            .app {
-                max-width: none;
-            }
-
-            .top-bar {
-                padding-top: max(16px, env(safe-area-inset-top));
-            }
-
-            .orb-button {
-                width: 152px;
-                height: 152px;
-            }
-
-            .response-panel {
-                max-height: 40vh;
-            }
-
-            .bottom {
-                padding-bottom: max(12px, env(safe-area-inset-bottom));
-            }
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: rgba(0, 212, 255, 0.4);
+            padding: 5px 3px 0;
+            letter-spacing: 0.06em;
+            min-height: 16px
         }
     </style>
 </head>
 
 <body>
-    <main class="app">
-        <header class="top-bar">
-            <div class="brand">
-                <h1>Mini Jarvis</h1>
-                <p>Tap the orb and speak</p>
-            </div>
+    <svg class="hex-bg" viewBox="0 0 400 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <pattern id="hex" x="0" y="0" width="46" height="52" patternUnits="userSpaceOnUse">
+                <polygon points="23,2 44,13 44,39 23,50 2,39 2,13" fill="none" stroke="rgba(0,212,255,0.4)"
+                    stroke-width="0.6" />
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hex)" />
+        <radialGradient id="fadeOut" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="white" stop-opacity="0" />
+            <stop offset="100%" stop-color="black" stop-opacity="0.9" />
+        </radialGradient>
+        <rect width="100%" height="100%" fill="url(#fadeOut)" />
+    </svg>
 
-            <div class="online">
-                <span class="online-dot"></span>
-                Online
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+    <div class="hud-bar-left"></div>
+    <div class="hud-bar-right"></div>
+
+    <main class="app">
+        <header class="hud-top">
+            <div class="brand-block">
+                <div class="brand-title">JARVIS</div>
+                <div class="brand-sub">PERSONAL AI SYSTEM · ONLINE</div>
+            </div>
+            <div class="status-cluster">
+                <div class="status-live"><span class="live-dot"></span>SYS LIVE</div>
+                <div class="sys-time" id="sysTime">00:00:00</div>
             </div>
         </header>
 
         <section class="main">
-            <div class="orb-section">
-                <button id="orbBtn" class="orb-button" onclick="toggleVoice()" title="Talk to Jarvis">
-                    ◉
-                </button>
+            <div class="reactor-wrap">
+                <div class="reactor-ring ring-3"></div>
+                <div class="reactor-ring ring-2"></div>
+                <div class="reactor-ring ring-1" id="ring1">
+                    <div class="ring-ticks" id="ringTicks"></div>
+                </div>
 
-                <div id="statusText" class="status-text">Ready</div>
-                <div class="hint">Tap the orb, speak, then tap again or wait.</div>
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring"></div>
+
+                <button id="orbBtn" class="orb-btn" onclick="toggleVoice()" title="Speak to Jarvis">
+                    <div class="orb-inner" id="orbIcon">⬡</div>
+                </button>
             </div>
 
+            <div id="statusText" class="status-line">AWAITING COMMAND</div>
+            <div class="tap-hint">[ TAP ORB TO SPEAK ]</div>
+
             <section id="responsePanel" class="response-panel">
-                <div id="responseTitle" class="response-title">Jarvis</div>
-                <div id="responseContent" class="response-text"></div>
+                <div class="resp-header">
+                    <span id="responseTitle" class="resp-label">JARVIS</span>
+                    <div class="resp-line"></div>
+                </div>
+                <div id="responseContent" class="resp-text"></div>
             </section>
         </section>
 
-        <div class="quick-row">
-            <button class="chip" onclick="quickSend('what do you remember about me?')">Memory</button>
-            <button class="chip" onclick="quickFill('search online for ')">Search</button>
-            <button class="chip" onclick="quickFill('debug this error: ')">Debug</button>
-            <button class="chip" onclick="quickFill('analyze this file and ')">Analyze file</button>
-            <button class="chip" onclick="quickSend('list tasks')">Tasks</button>
-            <button class="chip" onclick="quickSend('what should I focus on today?')">Focus</button>
+        <div class="chips-row">
+            <button class="chip" onclick="quickSend('what do you remember about me?')">MEM</button>
+            <button class="chip" onclick="quickFill('search online for ')">SCAN</button>
+            <button class="chip" onclick="quickFill('debug this error: ')">DEBUG</button>
+            <button class="chip" onclick="quickFill('analyze this file and ')">ANALYZE</button>
+            <button class="chip" onclick="quickSend('list tasks')">TASKS</button>
+            <button class="chip" onclick="quickSend('what should I focus on today?')">PRIORITY</button>
         </div>
 
-        <footer class="bottom">
-            <div class="input-wrapper">
-                <button id="fileBtn" class="icon-btn" onclick="openFilePicker()" title="Upload file">📎</button>
+        <footer class="footer">
+            <div class="input-row">
+                <button class="icon-btn" id="fileBtn" onclick="openFilePicker()" title="Upload">⬡</button>
                 <input id="fileInput" type="file" hidden
                     accept=".txt,.md,.py,.js,.html,.css,.json,.csv,.xml,.yaml,.yml,.java,.cpp,.c,.ts,.tsx,.jsx,.vue,.go,.rs,.php,.rb,.cs,.pdf" />
-
-                <input id="messageInput" placeholder="Type only when needed..." autocomplete="off" />
-                <button id="sendBtn" class="icon-btn send-btn" onclick="sendMessage()" title="Send">➤</button>
+                <input class="msg-input" id="messageInput" placeholder="[ INPUT COMMAND... ]" autocomplete="off" />
+                <button class="icon-btn send-btn" id="sendBtn" onclick="sendMessage()" title="Send">▶</button>
             </div>
-
             <div id="footerNote" class="footer-note"></div>
         </footer>
     </main>
 
     <script>
         const orbBtn = document.getElementById("orbBtn");
+        const orbIcon = document.getElementById("orbIcon");
         const statusText = document.getElementById("statusText");
         const responsePanel = document.getElementById("responsePanel");
         const responseTitle = document.getElementById("responseTitle");
@@ -422,52 +711,61 @@
         const footerNote = document.getElementById("footerNote");
 
         let sessionId = localStorage.getItem("jarvis_session_id");
-
         if (!sessionId) {
             sessionId = crypto.randomUUID();
             localStorage.setItem("jarvis_session_id", sessionId);
         }
 
+        function updateClock() {
+            const now = new Date();
+            document.getElementById("sysTime").textContent = now.toTimeString().slice(0, 8);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        (function buildTicks() {
+            const wrap = document.getElementById("ringTicks");
+            for (let i = 0; i < 24; i++) {
+                const t = document.createElement("div");
+                t.className = "tick";
+                t.style.transform = `rotate(${i * 15}deg) translateX(-50%)`;
+                t.style.opacity = i % 6 === 0 ? "1" : "0.35";
+                t.style.height = i % 6 === 0 ? "12px" : "6px";
+                wrap.appendChild(t);
+            }
+        })();
+
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
         let recordingTimer = null;
-
-        const MAX_RECORDING_MS = 10000;
-
-        let availableVoices = [];
+        const MAX_MS = 10000;
+        let voices = [];
         let jarvisVoice = null;
 
         function loadVoices() {
             if (!("speechSynthesis" in window)) return;
-
-            availableVoices = window.speechSynthesis.getVoices();
-
-            if (!availableVoices.length) return;
+            voices = window.speechSynthesis.getVoices();
+            if (!voices.length) return;
 
             jarvisVoice =
-                availableVoices.find(v => v.lang.toLowerCase().startsWith("en-gb") && v.name.toLowerCase().includes("daniel")) ||
-                availableVoices.find(v => v.lang.toLowerCase().startsWith("en-gb")) ||
-                availableVoices.find(v => v.name.toLowerCase().includes("david")) ||
-                availableVoices.find(v => v.name.toLowerCase().includes("mark")) ||
-                availableVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
-                availableVoices[0];
+                voices.find(v => v.lang.toLowerCase().startsWith("en-gb") && v.name.toLowerCase().includes("daniel")) ||
+                voices.find(v => v.lang.toLowerCase().startsWith("en-gb")) ||
+                voices.find(v => v.name.toLowerCase().includes("david")) ||
+                voices.find(v => v.lang.toLowerCase().startsWith("en")) ||
+                voices[0];
         }
 
-        function getSupportedAudioMimeType() {
-            const types = [
-                "audio/webm;codecs=opus",
-                "audio/webm",
-                "audio/mp4",
-                "audio/mpeg"
-            ];
+        loadVoices();
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
 
-            for (const type of types) {
-                if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) {
-                    return type;
-                }
+        function getMimeType() {
+            const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/mpeg"];
+            for (const t of types) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
             }
-
             return "";
         }
 
@@ -476,47 +774,50 @@
             footerNote.textContent = text;
         }
 
-        function setThinking(isThinking) {
-            sendBtn.disabled = isThinking;
-            fileBtn.disabled = isThinking;
+        function setThinking(on) {
+            sendBtn.disabled = on;
+            fileBtn.disabled = on;
 
-            if (isThinking) {
+            if (on) {
                 orbBtn.classList.add("thinking");
-                setStatus("Processing...");
+                setStatus("PROCESSING...");
             } else {
                 orbBtn.classList.remove("thinking");
             }
         }
 
-        function showResponse(text, title = "Jarvis") {
+        function showResponse(text, title = "JARVIS") {
             responsePanel.classList.add("show");
-            responseTitle.textContent = title;
+            responseTitle.textContent = title === "You" ? "// INPUT" : "JARVIS";
 
-            const taskItems = parseTaskList(text);
+            const tasks = parseTaskList(text);
 
-            if (taskItems.length > 0) {
-                responseContent.className = "task-list";
+            if (tasks.length > 0) {
+                responseContent.className = "task-grid";
                 responseContent.innerHTML = "";
 
-                taskItems.forEach(task => {
-                    const card = document.createElement("div");
-                    card.className = "task-card";
+                tasks.forEach(task => {
+                    const item = document.createElement("div");
+                    item.className = "task-item";
 
-                    const title = document.createElement("strong");
-                    title.textContent = `${task.id}. ${task.name}`;
+                    const strong = document.createElement("strong");
+                    strong.textContent = `${task.id}. ${task.name}`;
 
-                    const meta = document.createElement("p");
-                    meta.textContent = task.meta || "Task";
+                    item.appendChild(strong);
 
-                    card.appendChild(title);
-                    card.appendChild(meta);
-                    responseContent.appendChild(card);
+                    if (task.meta) {
+                        const p = document.createElement("p");
+                        p.textContent = task.meta;
+                        item.appendChild(p);
+                    }
+
+                    responseContent.appendChild(item);
                 });
 
                 return;
             }
 
-            responseContent.className = "response-text";
+            responseContent.className = "resp-text";
             responseContent.textContent = text;
         }
 
@@ -565,15 +866,13 @@
             const instruction = messageInput.value.trim();
 
             showResponse(
-                instruction
-                    ? `Uploaded file: ${file.name}\nInstruction: ${instruction}`
-                    : `Uploaded file: ${file.name}`,
+                instruction ? `FILE: ${file.name}\nDIRECTIVE: ${instruction}` : `FILE: ${file.name}`,
                 "You"
             );
 
             messageInput.value = "";
             setThinking(true);
-            setStatus("Analyzing file...");
+            setStatus("ANALYZING FILE...");
 
             try {
                 const formData = new FormData();
@@ -587,23 +886,23 @@
                 });
 
                 const data = await response.json();
-                const reply = data.reply || "No file analysis received.";
+                const reply = data.reply || "No analysis received.";
 
-                showResponse(reply, "Jarvis");
+                showResponse(reply, "JARVIS");
                 speak(reply);
 
             } catch (error) {
-                showResponse("Could not analyze file. Check the backend logs.", "Jarvis");
+                showResponse("File analysis failed. Check backend.", "JARVIS");
             } finally {
                 setThinking(false);
-                setStatus("Ready");
+                setStatus("AWAITING COMMAND");
                 messageInput.focus();
             }
         }
 
         async function toggleVoice() {
             if (isRecording) {
-                stopCurrentRecording();
+                stopRecording();
                 return;
             }
 
@@ -611,8 +910,8 @@
         }
 
         async function startRecording() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                setStatus("Microphone recording is not supported in this browser.");
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setStatus("MIC NOT SUPPORTED");
                 return;
             }
 
@@ -627,7 +926,7 @@
 
                 audioChunks = [];
 
-                const mimeType = getSupportedAudioMimeType();
+                const mimeType = getMimeType();
 
                 mediaRecorder = mimeType
                     ? new MediaRecorder(stream, { mimeType })
@@ -636,14 +935,14 @@
                 mediaRecorder.onstart = function () {
                     isRecording = true;
                     orbBtn.classList.add("recording");
-                    orbBtn.textContent = "■";
-                    setStatus("Listening...");
+                    orbIcon.textContent = "■";
+                    setStatus("LISTENING...");
 
                     recordingTimer = setTimeout(function () {
                         if (isRecording) {
-                            stopCurrentRecording();
+                            stopRecording();
                         }
-                    }, MAX_RECORDING_MS);
+                    }, MAX_MS);
                 };
 
                 mediaRecorder.ondataavailable = function (event) {
@@ -655,7 +954,7 @@
                 mediaRecorder.onstop = async function () {
                     isRecording = false;
                     orbBtn.classList.remove("recording");
-                    orbBtn.textContent = "◉";
+                    orbIcon.textContent = "⬡";
                     clearTimeout(recordingTimer);
 
                     stream.getTracks().forEach(track => track.stop());
@@ -665,25 +964,25 @@
                     });
 
                     if (audioBlob.size < 1000) {
-                        setStatus("No clear audio captured.");
+                        setStatus("AUDIO UNCLEAR — RETRY");
                         return;
                     }
 
-                    await sendVoiceMessage(audioBlob);
+                    await sendVoice(audioBlob);
                 };
 
                 playBeep();
                 mediaRecorder.start();
 
             } catch (error) {
-                setStatus("Microphone error: " + error.message);
+                setStatus("MIC ERROR: " + error.message);
                 isRecording = false;
                 orbBtn.classList.remove("recording");
-                orbBtn.textContent = "◉";
+                orbIcon.textContent = "⬡";
             }
         }
 
-        function stopCurrentRecording() {
+        function stopRecording() {
             try {
                 if (mediaRecorder && mediaRecorder.state !== "inactive") {
                     mediaRecorder.stop();
@@ -693,9 +992,9 @@
             }
         }
 
-        async function sendVoiceMessage(audioBlob) {
+        async function sendVoice(audioBlob) {
             setThinking(true);
-            setStatus("Transcribing...");
+            setStatus("TRANSCRIBING...");
 
             try {
                 const formData = new FormData();
@@ -715,14 +1014,14 @@
 
                 const reply = data.reply || "No response received.";
 
-                showResponse(reply, "Jarvis");
+                showResponse(reply, "JARVIS");
                 speak(reply);
 
             } catch (error) {
-                showResponse("Could not process voice message. Check the backend logs.", "Jarvis");
+                showResponse("Voice processing failed.", "JARVIS");
             } finally {
                 setThinking(false);
-                setStatus("Ready");
+                setStatus("AWAITING COMMAND");
             }
         }
 
@@ -750,20 +1049,20 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    showResponse(data.detail || "Server error.", "Jarvis");
+                    showResponse(data.detail || "Server error.", "JARVIS");
                     return;
                 }
 
                 const reply = data.reply || "No response received.";
 
-                showResponse(reply, "Jarvis");
+                showResponse(reply, "JARVIS");
                 speak(reply);
 
             } catch (error) {
-                showResponse("Could not contact Jarvis. Check if the backend server is running.", "Jarvis");
+                showResponse("Cannot reach Jarvis backend.", "JARVIS");
             } finally {
                 setThinking(false);
-                setStatus("Ready");
+                setStatus("AWAITING COMMAND");
                 messageInput.focus();
             }
         }
@@ -772,13 +1071,10 @@
             if (!("speechSynthesis" in window)) return;
 
             window.speechSynthesis.cancel();
-
             playBeep();
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "en-GB";
-
-            // Robotic / Jarvis-inspired feel
             utterance.rate = 0.88;
             utterance.pitch = 0.62;
             utterance.volume = 1;
@@ -811,9 +1107,7 @@
 
                 oscillator.start();
                 oscillator.stop(ctx.currentTime + 0.14);
-            } catch (error) {
-                // Ignore audio context errors
-            }
+            } catch (error) { }
         }
 
         messageInput.addEventListener("keydown", function (event) {
@@ -824,21 +1118,14 @@
 
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
-                navigator.serviceWorker
-                    .register("/static/service-worker.js")
+                navigator.serviceWorker.register("/static/service-worker.js")
                     .then(function () {
                         console.log("Service worker registered.");
                     })
                     .catch(function (error) {
-                        console.log("Service worker registration failed:", error);
+                        console.log("Service worker failed:", error);
                     });
             });
-        }
-
-        loadVoices();
-
-        if ("speechSynthesis" in window) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
         }
     </script>
 </body>
