@@ -8,9 +8,8 @@
     <title>Mini Jarvis</title>
 
     <link rel="manifest" href="/static/manifest.json" />
-    <meta name="theme-color" content="#38bdf8" />
+    <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Jarvis" />
     <link rel="apple-touch-icon" href="/static/icon-192.png" />
 
@@ -21,58 +20,39 @@
         }
 
         :root {
-            --bg-main: #020617;
-            --bg-card: rgba(15, 23, 42, 0.94);
-            --border-soft: rgba(148, 163, 184, 0.25);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg: #0f172a;
+            --panel-soft: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --muted: #94a3b8;
             --accent: #38bdf8;
-            --user-msg: linear-gradient(135deg, #2563eb, #1d4ed8);
-            --jarvis-msg: #1e293b;
             --danger: #ef4444;
-            --warning: #f59e0b;
+            --success: #22c55e;
+            --user: #2563eb;
+            --bot: #1e293b;
         }
 
         body {
             margin: 0;
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 35%),
-                radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.18), transparent 35%),
-                var(--bg-main);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .phone-shell {
-            width: 100%;
-            max-width: 480px;
             height: 100vh;
-            padding: 12px;
+            background: var(--bg);
+            color: var(--text);
         }
 
         .app {
             width: 100%;
-            height: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-soft);
-            border-radius: 28px;
+            max-width: 720px;
+            height: 100vh;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(16px);
+            background: #020617;
         }
 
         .header {
-            padding: 20px 18px 14px;
-            border-bottom: 1px solid var(--border-soft);
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.72));
-        }
-
-        .top-row {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.96);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -83,142 +63,39 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            min-width: 0;
         }
 
-        .orb {
-            width: 42px;
-            height: 42px;
+        .avatar {
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            background:
-                radial-gradient(circle at 30% 30%, #ffffff, #7dd3fc 22%, #0284c7 58%, #0f172a 100%);
-            box-shadow: 0 0 26px rgba(56, 189, 248, 0.75);
+            background: radial-gradient(circle at 30% 30%, #e0f2fe, #38bdf8, #0369a1);
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
             flex-shrink: 0;
         }
 
-        .brand-text h1 {
+        .brand h1 {
             margin: 0;
-            font-size: 22px;
-            letter-spacing: -0.04em;
+            font-size: 18px;
         }
 
-        .brand-text p {
-            margin: 3px 0 0;
-            color: var(--text-muted);
-            font-size: 13px;
+        .brand p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: var(--muted);
         }
 
-        .status-pill {
-            padding: 7px 10px;
-            border-radius: 999px;
-            background: rgba(34, 197, 94, 0.12);
+        .status {
+            font-size: 12px;
             color: #86efac;
-            border: 1px solid rgba(34, 197, 94, 0.25);
-            font-size: 12px;
             white-space: nowrap;
         }
 
-        .quick-actions {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-top: 14px;
-            scrollbar-width: none;
-        }
-
-        .quick-actions::-webkit-scrollbar {
-            display: none;
-        }
-
-        .chip {
-            border: 1px solid var(--border-soft);
-            background: rgba(30, 41, 59, 0.85);
-            color: #dbeafe;
-            padding: 9px 12px;
-            border-radius: 999px;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .chip:active {
-            transform: scale(0.98);
-        }
-
-        .dashboard {
-            padding-top: 14px;
-        }
-
-        .greeting-card {
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            background:
-                radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 35%),
-                rgba(15, 23, 42, 0.8);
-            border-radius: 20px;
-            padding: 14px;
-            margin-bottom: 10px;
-        }
-
-        .greeting-card p {
-            margin: 0 0 6px;
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .greeting-card h2 {
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.35;
-            color: #e0f2fe;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(72px, 1fr));
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-            scrollbar-width: none;
-        }
-
-        .stats-grid::-webkit-scrollbar {
-            display: none;
-        }
-
-        .stat-card {
-            background: rgba(30, 41, 59, 0.75);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 16px;
-            padding: 12px;
-            text-align: center;
-            min-width: 72px;
-        }
-
-        .stat-card span {
-            display: block;
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--accent);
-        }
-
-        .stat-card p {
-            margin: 4px 0 0;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .stat-card.overdue span {
-            color: var(--danger);
-        }
-
-        .stat-card.today span {
-            color: var(--warning);
-        }
-
-        .chat-box {
+        .chat {
             flex: 1;
             overflow-y: auto;
             padding: 18px 14px;
-            scroll-behavior: smooth;
         }
 
         .message-row {
@@ -230,7 +107,7 @@
             justify-content: flex-end;
         }
 
-        .message-row.jarvis-row {
+        .message-row.bot-row {
             justify-content: flex-start;
         }
 
@@ -239,158 +116,117 @@
             padding: 12px 14px;
             border-radius: 18px;
             line-height: 1.45;
-            white-space: pre-wrap;
             font-size: 15px;
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
 
         .message.user {
-            background: var(--user-msg);
+            background: var(--user);
             color: white;
             border-bottom-right-radius: 6px;
-            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
         }
 
-        .message.jarvis {
-            background: var(--jarvis-msg);
+        .message.bot {
+            background: var(--bot);
             color: #e5e7eb;
-            border: 1px solid rgba(148, 163, 184, 0.14);
+            border: 1px solid rgba(148, 163, 184, 0.16);
             border-bottom-left-radius: 6px;
         }
 
-        .timestamp {
-            margin-top: 5px;
+        .time {
+            margin-top: 4px;
             font-size: 11px;
-            color: rgba(226, 232, 240, 0.55);
+            color: var(--muted);
+        }
+
+        .user-row .time {
+            text-align: right;
         }
 
         .typing {
             display: none;
-            align-items: center;
-            gap: 6px;
-            padding: 0 16px 12px;
-            color: var(--text-muted);
+            padding: 0 16px 10px;
+            color: var(--muted);
             font-size: 13px;
         }
 
-        .typing-dots {
+        .quick-actions {
             display: flex;
-            gap: 4px;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 12px;
+            border-top: 1px solid var(--border);
+            background: #020617;
+            scrollbar-width: none;
         }
 
-        .typing-dots span {
-            width: 6px;
-            height: 6px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: bounce 1s infinite ease-in-out;
+        .quick-actions::-webkit-scrollbar {
+            display: none;
         }
 
-        .typing-dots span:nth-child(2) {
-            animation-delay: 0.15s;
+        .chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--panel-soft);
+            color: #dbeafe;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
         }
 
-        .typing-dots span:nth-child(3) {
-            animation-delay: 0.3s;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            80%,
-            100% {
-                transform: translateY(0);
-                opacity: 0.4;
-            }
-
-            40% {
-                transform: translateY(-5px);
-                opacity: 1;
-            }
+        .chip.active {
+            border-color: var(--success);
+            color: #bbf7d0;
+            box-shadow: 0 0 14px rgba(34, 197, 94, 0.2);
         }
 
         .input-area {
             padding: 12px;
-            border-top: 1px solid var(--border-soft);
-            background: rgba(2, 6, 23, 0.72);
+            border-top: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.98);
         }
 
         .input-wrapper {
             display: flex;
-            align-items: center;
             gap: 8px;
-            background: #0f172a;
-            border: 1px solid rgba(148, 163, 184, 0.26);
-            border-radius: 18px;
+            align-items: center;
+            background: #020617;
+            border: 1px solid var(--border);
+            border-radius: 16px;
             padding: 8px;
         }
 
-        input {
-            flex: 1;
-            min-width: 0;
-            padding: 12px 10px;
-            background: transparent;
-            color: white;
-            border: none;
-            outline: none;
-            font-size: 16px;
-        }
-
-        input::placeholder {
-            color: #64748b;
-        }
-
-        button {
-            border: none;
-            cursor: pointer;
-            font-weight: 700;
-        }
-
         .icon-btn {
-            width: 46px;
-            height: 46px;
-            border-radius: 15px;
-            display: grid;
-            place-items: center;
-            flex-shrink: 0;
-            transition: 0.2s ease;
-            font-size: 18px;
-        }
-
-        .mic-btn {
-            background: rgba(30, 41, 59, 0.95);
-            color: #e0f2fe;
-            border: 1px solid rgba(148, 163, 184, 0.26);
-        }
-
-        .mic-btn.recording {
-            background: var(--danger);
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            border: none;
+            background: var(--panel-soft);
             color: white;
-            box-shadow: 0 0 22px rgba(239, 68, 68, 0.55);
-            animation: pulse 1.2s infinite;
+            cursor: pointer;
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.06);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+        .icon-btn:hover {
+            background: #334155;
         }
 
         .send-btn {
             background: var(--accent);
             color: #020617;
+            font-weight: bold;
         }
 
         .send-btn:hover {
             background: #7dd3fc;
+        }
+
+        .mic-btn.recording {
+            background: var(--danger);
+            color: white;
         }
 
         .icon-btn:disabled {
@@ -398,149 +234,114 @@
             cursor: not-allowed;
         }
 
+        input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-size: 16px;
+            padding: 10px 4px;
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
         .voice-status {
-            margin-top: 8px;
-            color: var(--text-muted);
+            margin-top: 6px;
             font-size: 12px;
+            color: var(--muted);
             min-height: 16px;
         }
 
-        @media (max-width: 520px) {
-            body {
-                align-items: stretch;
-            }
-
-            .phone-shell {
-                max-width: none;
-                height: 100dvh;
-                padding: 0;
-            }
-
+        @media (max-width: 720px) {
             .app {
-                border-radius: 0;
-                border: none;
-            }
-
-            .header {
-                padding-top: 18px;
+                max-width: none;
             }
 
             .message {
                 max-width: 88%;
-                font-size: 15px;
+            }
+
+            .header {
+                padding-top: max(14px, env(safe-area-inset-top));
+            }
+
+            .input-area {
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="phone-shell">
-        <main class="app">
-            <header class="header">
-                <div class="top-row">
-                    <div class="brand">
-                        <div class="orb"></div>
-                        <div class="brand-text">
-                            <h1>Mini Jarvis</h1>
-                            <p>Your personal AI agent</p>
-                        </div>
-                    </div>
-
-                    <div class="status-pill">Online</div>
+    <main class="app">
+        <header class="header">
+            <div class="brand">
+                <div class="avatar"></div>
+                <div>
+                    <h1>Mini Jarvis</h1>
+                    <p>AI assistant</p>
                 </div>
-
-                <div class="quick-actions">
-                    <button class="chip" onclick="quickSend('list tasks')">List tasks</button>
-                    <button class="chip" onclick="quickSend('show tasks due today')">Due today</button>
-                    <button class="chip" onclick="quickSend('show overdue tasks')">Overdue</button>
-                    <button class="chip" onclick="quickSend('what time is it?')">Time</button>
-                    <button class="chip" onclick="quickSend('list notes')">Notes</button>
-                    <button class="chip" onclick="quickFill('add task ')">Add task</button>
-                    <button class="chip" onclick="quickSend('what should I focus on today?')">Focus</button>
-                </div>
-
-                <section class="dashboard">
-                    <div class="greeting-card">
-                        <p id="greetingText">Welcome back.</p>
-                        <h2 id="focusText">Loading your focus...</h2>
-                    </div>
-
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span id="pendingCount">0</span>
-                            <p>Pending</p>
-                        </div>
-
-                        <div class="stat-card today">
-                            <span id="dueTodayCount">0</span>
-                            <p>Due Today</p>
-                        </div>
-
-                        <div class="stat-card overdue">
-                            <span id="overdueCount">0</span>
-                            <p>Overdue</p>
-                        </div>
-
-                        <div class="stat-card">
-                            <span id="completedCount">0</span>
-                            <p>Done</p>
-                        </div>
-
-                        <div class="stat-card">
-                            <span id="notesCount">0</span>
-                            <p>Notes</p>
-                        </div>
-                    </div>
-                </section>
-            </header>
-
-            <section id="chatBox" class="chat-box">
-                <div class="message-row jarvis-row">
-                    <div>
-                        <div class="message jarvis">
-                            Hello. I am Mini Jarvis. You can add tasks with due dates, ask for today’s tasks, check
-                            overdue work, or use voice.
-                        </div>
-                        <div class="timestamp">Jarvis</div>
-                    </div>
-                </div>
-            </section>
-
-            <div id="typingIndicator" class="typing">
-                <div class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-                Jarvis is thinking...
             </div>
 
-            <footer class="input-area">
-                <div class="input-wrapper">
-                    <button id="micBtn" class="icon-btn mic-btn" onclick="toggleVoice()">🎤</button>
-                    <input id="messageInput" placeholder="Ask Jarvis anything..." autocomplete="off" />
-                    <button id="sendBtn" class="icon-btn send-btn" onclick="sendMessage()">➤</button>
+            <div class="status">Online</div>
+        </header>
+
+        <section id="chatBox" class="chat">
+            <div class="message-row bot-row">
+                <div>
+                    <div class="message bot">
+                        Hello. I am Mini Jarvis. You can type, upload files, use the mic, or start a Voice Session.
+                    </div>
+                    <div class="time">Jarvis</div>
                 </div>
-                <div id="voiceStatus" class="voice-status"></div>
-            </footer>
-        </main>
-    </div>
+            </div>
+        </section>
+
+        <div id="typingIndicator" class="typing">
+            Jarvis is thinking...
+        </div>
+
+        <div class="quick-actions">
+            <button id="voiceSessionBtn" class="chip" onclick="toggleVoiceSession()">Voice Session</button>
+            <button class="chip" onclick="quickSend('what do you remember about me?')">Memory</button>
+            <button class="chip" onclick="quickFill('search online for ')">Search</button>
+            <button class="chip" onclick="quickFill('debug this error: ')">Debug</button>
+            <button class="chip" onclick="quickFill('analyze this file and ')">Analyze file</button>
+            <button class="chip" onclick="quickSend('what should I focus on today?')">Focus</button>
+            <button class="chip" onclick="quickSend('list tasks')">Tasks</button>
+        </div>
+
+        <footer class="input-area">
+            <div class="input-wrapper">
+                <button id="micBtn" class="icon-btn mic-btn" onclick="toggleVoice()" title="Voice">🎤</button>
+
+                <button id="fileBtn" class="icon-btn file-btn" onclick="openFilePicker()"
+                    title="Upload file">📎</button>
+                <input id="fileInput" type="file" hidden
+                    accept=".txt,.md,.py,.js,.html,.css,.json,.csv,.xml,.yaml,.yml,.java,.cpp,.c,.ts,.tsx,.jsx,.vue,.go,.rs,.php,.rb,.cs,.pdf" />
+
+                <input id="messageInput" placeholder="Message Jarvis..." autocomplete="off" />
+                <button id="sendBtn" class="icon-btn send-btn" onclick="sendMessage()" title="Send">➤</button>
+            </div>
+
+            <div id="voiceStatus" class="voice-status"></div>
+        </footer>
+    </main>
 
     <script>
         const chatBox = document.getElementById("chatBox");
         const messageInput = document.getElementById("messageInput");
         const sendBtn = document.getElementById("sendBtn");
         const micBtn = document.getElementById("micBtn");
+        const fileBtn = document.getElementById("fileBtn");
+        const fileInput = document.getElementById("fileInput");
         const typingIndicator = document.getElementById("typingIndicator");
         const voiceStatus = document.getElementById("voiceStatus");
-
-        const greetingText = document.getElementById("greetingText");
-        const focusText = document.getElementById("focusText");
-        const pendingCount = document.getElementById("pendingCount");
-        const dueTodayCount = document.getElementById("dueTodayCount");
-        const overdueCount = document.getElementById("overdueCount");
-        const completedCount = document.getElementById("completedCount");
-        const notesCount = document.getElementById("notesCount");
+        const voiceSessionBtn = document.getElementById("voiceSessionBtn");
 
         let sessionId = localStorage.getItem("jarvis_session_id");
 
@@ -552,6 +353,16 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        let currentRecordingFromSession = false;
+
+        let voiceSessionEnabled = false;
+        let sessionRestartTimer = null;
+        let recordingTimer = null;
+
+        const MAX_SESSION_RECORDING_MS = 10000;
+
+        let availableVoices = [];
+        let roboticVoice = null;
 
         function getTime() {
             return new Date().toLocaleTimeString([], {
@@ -560,80 +371,51 @@
             });
         }
 
-        function getGreeting() {
-            const hour = new Date().getHours();
+        function loadVoices() {
+            if (!("speechSynthesis" in window)) return;
 
-            if (hour < 12) {
-                return "Good morning.";
-            }
+            availableVoices = window.speechSynthesis.getVoices();
 
-            if (hour < 18) {
-                return "Good afternoon.";
-            }
+            if (!availableVoices.length) return;
 
-            return "Good evening.";
+            roboticVoice =
+                availableVoices.find(v => v.lang.toLowerCase().startsWith("en") && v.name.toLowerCase().includes("david")) ||
+                availableVoices.find(v => v.lang.toLowerCase().startsWith("en") && v.name.toLowerCase().includes("mark")) ||
+                availableVoices.find(v => v.lang.toLowerCase().startsWith("en") && v.name.toLowerCase().includes("daniel")) ||
+                availableVoices.find(v => v.lang.toLowerCase().startsWith("en") && v.name.toLowerCase().includes("male")) ||
+                availableVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
+                availableVoices[0];
         }
 
-        function formatDueDate(dueDate) {
-            if (!dueDate) return "";
+        function getSupportedAudioMimeType() {
+            const types = [
+                "audio/webm;codecs=opus",
+                "audio/webm",
+                "audio/mp4",
+                "audio/mpeg"
+            ];
 
-            const today = new Date();
-            const target = new Date(dueDate + "T00:00:00");
-
-            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const targetOnly = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-
-            const diffTime = targetOnly - todayOnly;
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 0) return "Due today";
-            if (diffDays === 1) return "Due tomorrow";
-            if (diffDays === -1) return "Due yesterday";
-            if (diffDays < -1) return `Overdue by ${Math.abs(diffDays)} days`;
-
-            return `Due ${dueDate}`;
-        }
-
-        async function loadDashboard() {
-            try {
-                const response = await fetch(`/dashboard?session_id=${sessionId}`);
-                const data = await response.json();
-
-                greetingText.textContent = getGreeting();
-
-                pendingCount.textContent = data.pending_tasks ?? 0;
-                dueTodayCount.textContent = data.due_today ?? 0;
-                overdueCount.textContent = data.overdue ?? 0;
-                completedCount.textContent = data.completed_tasks ?? 0;
-                notesCount.textContent = data.notes_count ?? 0;
-
-                if (data.today_focus) {
-                    const dueText = formatDueDate(data.today_focus.due_date);
-                    focusText.textContent = dueText
-                        ? `Today's focus: ${data.today_focus.task} • ${dueText}`
-                        : `Today's focus: ${data.today_focus.task}`;
-                } else {
-                    focusText.textContent = "No pending tasks. You're clear for now.";
+            for (const type of types) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) {
+                    return type;
                 }
-
-            } catch (error) {
-                greetingText.textContent = "Welcome back.";
-                focusText.textContent = "Could not load dashboard.";
             }
+
+            return "";
         }
 
         function addMessage(text, sender) {
             const row = document.createElement("div");
-            row.className = `message-row ${sender}-row`;
+            row.className = `message-row ${sender === "user" ? "user-row" : "bot-row"}`;
 
             const wrapper = document.createElement("div");
 
             const bubble = document.createElement("div");
-            bubble.className = `message ${sender}`;
+            bubble.className = `message ${sender === "user" ? "user" : "bot"}`;
             bubble.textContent = text;
 
             const time = document.createElement("div");
-            time.className = "timestamp";
+            time.className = "time";
             time.textContent = sender === "user" ? `You • ${getTime()}` : `Jarvis • ${getTime()}`;
 
             wrapper.appendChild(bubble);
@@ -647,7 +429,8 @@
         function setLoading(isLoading) {
             sendBtn.disabled = isLoading;
             micBtn.disabled = isLoading;
-            typingIndicator.style.display = isLoading ? "flex" : "none";
+            fileBtn.disabled = isLoading;
+            typingIndicator.style.display = isLoading ? "block" : "none";
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -661,31 +444,147 @@
             sendMessage();
         }
 
+        function openFilePicker() {
+            fileInput.click();
+        }
+
+        fileInput.addEventListener("change", async function () {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            await uploadFile(file);
+            fileInput.value = "";
+        });
+
+        async function uploadFile(file) {
+            const instruction = messageInput.value.trim();
+
+            addMessage(
+                instruction
+                    ? `Uploaded file: ${file.name}\nInstruction: ${instruction}`
+                    : `Uploaded file: ${file.name}`,
+                "user"
+            );
+
+            messageInput.value = "";
+            setLoading(true);
+            voiceStatus.textContent = "Analyzing file...";
+
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("session_id", sessionId);
+                formData.append("instruction", instruction);
+
+                const response = await fetch("/upload-file", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                addMessage(data.reply || "No file analysis received.", "bot");
+
+            } catch (error) {
+                addMessage("Could not analyze file. Check the backend logs.", "bot");
+            } finally {
+                setLoading(false);
+                voiceStatus.textContent = "";
+                messageInput.focus();
+            }
+        }
+
         async function toggleVoice() {
             if (isRecording) {
-                mediaRecorder.stop();
+                stopCurrentRecording();
                 return;
             }
 
+            await startCommandRecording(false);
+        }
+
+        async function toggleVoiceSession() {
+            if (voiceSessionEnabled) {
+                stopVoiceSession();
+                return;
+            }
+
+            startVoiceSession();
+        }
+
+        async function startVoiceSession() {
+            voiceSessionEnabled = true;
+            voiceSessionBtn.classList.add("active");
+            voiceSessionBtn.textContent = "Voice Session: On";
+            voiceStatus.textContent = "Voice Session starting...";
+
+            await speakAsync("Voice session started. I am listening.");
+
+            if (voiceSessionEnabled) {
+                await startCommandRecording(true);
+            }
+        }
+
+        function stopVoiceSession() {
+            voiceSessionEnabled = false;
+            voiceSessionBtn.classList.remove("active");
+            voiceSessionBtn.textContent = "Voice Session";
+            voiceStatus.textContent = "Voice Session stopped.";
+
+            clearTimeout(sessionRestartTimer);
+            clearTimeout(recordingTimer);
+
+            if (isRecording) {
+                stopCurrentRecording();
+            }
+
+            setTimeout(function () {
+                if (!voiceSessionEnabled) {
+                    voiceStatus.textContent = "";
+                }
+            }, 1500);
+        }
+
+        async function startCommandRecording(fromSession = false) {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 voiceStatus.textContent = "Microphone recording is not supported in this browser.";
                 return;
             }
 
+            if (isRecording) return;
+
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
 
                 audioChunks = [];
+                currentRecordingFromSession = fromSession;
 
-                mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: "audio/webm"
-                });
+                const mimeType = getSupportedAudioMimeType();
+
+                mediaRecorder = mimeType
+                    ? new MediaRecorder(stream, { mimeType })
+                    : new MediaRecorder(stream);
 
                 mediaRecorder.onstart = function () {
                     isRecording = true;
                     micBtn.classList.add("recording");
                     micBtn.textContent = "■";
-                    voiceStatus.textContent = "Recording... tap again to stop.";
+
+                    if (fromSession) {
+                        voiceStatus.textContent = "Listening... speak now.";
+                        recordingTimer = setTimeout(function () {
+                            if (isRecording) {
+                                stopCurrentRecording();
+                            }
+                        }, MAX_SESSION_RECORDING_MS);
+                    } else {
+                        voiceStatus.textContent = "Recording... tap stop when finished.";
+                    }
                 };
 
                 mediaRecorder.ondataavailable = function (event) {
@@ -698,15 +597,27 @@
                     isRecording = false;
                     micBtn.classList.remove("recording");
                     micBtn.textContent = "🎤";
-                    voiceStatus.textContent = "Transcribing...";
+
+                    clearTimeout(recordingTimer);
 
                     stream.getTracks().forEach(track => track.stop());
 
                     const audioBlob = new Blob(audioChunks, {
-                        type: "audio/webm"
+                        type: mediaRecorder.mimeType || "audio/webm"
                     });
 
-                    await sendVoiceMessage(audioBlob);
+                    if (audioBlob.size < 1000) {
+                        voiceStatus.textContent = "No clear audio captured.";
+
+                        if (voiceSessionEnabled) {
+                            restartVoiceSessionListening();
+                        }
+
+                        return;
+                    }
+
+                    voiceStatus.textContent = "Transcribing...";
+                    await sendVoiceMessage(audioBlob, currentRecordingFromSession);
                 };
 
                 mediaRecorder.start();
@@ -716,10 +627,24 @@
                 isRecording = false;
                 micBtn.classList.remove("recording");
                 micBtn.textContent = "🎤";
+
+                if (voiceSessionEnabled) {
+                    restartVoiceSessionListening();
+                }
             }
         }
 
-        async function sendVoiceMessage(audioBlob) {
+        function stopCurrentRecording() {
+            try {
+                if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                    mediaRecorder.stop();
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        async function sendVoiceMessage(audioBlob, fromSession = false) {
             setLoading(true);
 
             try {
@@ -739,32 +664,95 @@
                 }
 
                 const reply = data.reply || "No response received.";
-                addMessage(reply, "jarvis");
-                speak(reply);
+                addMessage(reply, "bot");
+
+                if (fromSession) {
+                    await speakAsync(reply);
+                } else {
+                    speak(reply);
+                }
 
             } catch (error) {
-                addMessage("Could not process voice message. Check the backend logs.", "jarvis");
+                addMessage("Could not process voice message. Check the backend logs.", "bot");
+
+                if (fromSession) {
+                    await speakAsync("I could not process that voice message.");
+                }
+
             } finally {
                 setLoading(false);
-                loadDashboard();
-                voiceStatus.textContent = "";
+
+                if (fromSession && voiceSessionEnabled) {
+                    restartVoiceSessionListening();
+                } else {
+                    voiceStatus.textContent = "";
+                }
             }
         }
 
+        function restartVoiceSessionListening() {
+            clearTimeout(sessionRestartTimer);
+
+            voiceStatus.textContent = "Voice Session active. Listening again shortly...";
+
+            sessionRestartTimer = setTimeout(async function () {
+                if (voiceSessionEnabled && !isRecording) {
+                    await startCommandRecording(true);
+                }
+            }, 900);
+        }
+
         function speak(text) {
-            if (!("speechSynthesis" in window)) {
-                return;
-            }
+            if (!("speechSynthesis" in window)) return;
 
             window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "en-US";
-            utterance.rate = 1;
-            utterance.pitch = 1;
+
+            utterance.rate = 0.92;
+            utterance.pitch = 0.72;
             utterance.volume = 1;
 
+            if (roboticVoice) {
+                utterance.voice = roboticVoice;
+                utterance.lang = roboticVoice.lang;
+            }
+
             window.speechSynthesis.speak(utterance);
+        }
+
+        function speakAsync(text) {
+            return new Promise(function (resolve) {
+                if (!("speechSynthesis" in window)) {
+                    resolve();
+                    return;
+                }
+
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = "en-US";
+
+                utterance.rate = 0.92;
+                utterance.pitch = 0.72;
+                utterance.volume = 1;
+
+                if (roboticVoice) {
+                    utterance.voice = roboticVoice;
+                    utterance.lang = roboticVoice.lang;
+                }
+
+                utterance.onend = function () {
+                    resolve();
+                };
+
+                utterance.onerror = function () {
+                    resolve();
+                };
+
+                window.speechSynthesis.speak(utterance);
+            });
         }
 
         async function sendMessage() {
@@ -792,18 +780,16 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    addMessage(data.detail || "Server error.", "jarvis");
+                    addMessage(data.detail || "Server error.", "bot");
                     return;
                 }
 
-                const reply = data.reply || "No response received.";
-                addMessage(reply, "jarvis");
+                addMessage(data.reply || "No response received.", "bot");
 
             } catch (error) {
-                addMessage("Could not contact Jarvis. Check if the backend server is running.", "jarvis");
+                addMessage("Could not contact Jarvis. Check if the backend server is running.", "bot");
             } finally {
                 setLoading(false);
-                loadDashboard();
                 messageInput.focus();
             }
         }
@@ -827,7 +813,11 @@
             });
         }
 
-        loadDashboard();
+        loadVoices();
+
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
     </script>
 </body>
 

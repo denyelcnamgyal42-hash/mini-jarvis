@@ -10,8 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from database import init_db, get_dashboard_data
+from io import BytesIO
+from pypdf import PdfReader
 
-from agent import ask_jarvis 
+
+from agent import ask_jarvis, analyze_uploaded_file
 
 load_dotenv()
 
@@ -28,6 +31,37 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str 
+
+def extract_text_from_file(filename: str, file_bytes: bytes) -> str:
+    """
+    Extract text from supported uploaded files.
+    """
+
+    lower_name = filename.lower()
+
+    if lower_name.endswith(".pdf"):
+        reader = PdfReader(BytesIO(file_bytes))
+        text_parts = []
+
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                text_parts.append(text)
+
+        return "\n\n".join(text_parts)
+
+    text_extensions = (
+    ".txt", ".md", ".py", ".js", ".html", ".css",
+    ".json", ".csv", ".xml", ".yaml", ".yml", ".java",
+    ".cpp", ".c", ".ts", ".tsx", ".jsx", ".vue",
+    ".go", ".rs", ".php", ".rb", ".cs"
+)
+    
+
+    if lower_name.endswith(text_extensions):
+        return file_bytes.decode("utf-8", errors="ignore")
+
+    raise ValueError("Unsupported file type. Upload PDF, code, text, markdown, JSON, CSV, HTML, CSS, or JS files.")
 
 @app.get("/")
 def home():
@@ -72,8 +106,13 @@ async def voice_chat(
         with open(temp_audio_path, "rb") as file:
             transcription = groq_client.audio.transcriptions.create(
                 file=file,
-                model="whisper-large-v3-turbo",
+                model="whisper-large-v3",
                 response_format="text"
+                language="en",
+                prompt=(
+        "The speaker is talking to an AI assistant called Mini Jarvis. "
+        "Common topics include adding tasks, getting current time, Live Updates on Football Teams "
+    )
             )
 
         os.remove(temp_audio_path)
@@ -108,4 +147,48 @@ def dashboard(session_id: str):
             "notes_count": 0,
             "today_focus": None,
             "error": str(e)
+        }
+    
+@app.post("/upload-file")
+async def upload_file(
+    file: UploadFile = File(...),
+    session_id: str = Form(...),
+    instruction: str = Form("")
+):
+    try:
+        print("File upload received:", file.filename)
+        print("Session ID:", session_id)
+        print("Instruction:", instruction)
+
+        file_bytes = await file.read()
+
+        max_size_mb = 5
+        if len(file_bytes) > max_size_mb * 1024 * 1024:
+            return {
+                "reply": f"File is too large. Please upload a file smaller than {max_size_mb} MB."
+            }
+
+        file_text = extract_text_from_file(file.filename, file_bytes)
+
+        if not file_text.strip():
+            return {
+                "reply": "I could not extract readable text from this file."
+            }
+
+        reply = analyze_uploaded_file(
+            filename=file.filename,
+            file_content=file_text,
+            user_instruction=instruction,
+            session_id=session_id
+        )
+
+        return {
+            "filename": file.filename,
+            "reply": reply
+        }
+
+    except Exception as e:
+        print("File upload error:", e)
+        return {
+            "reply": f"File upload error: {str(e)}"
         }

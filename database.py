@@ -31,6 +31,15 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS memories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        memory TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+
     # Migration: add due_date if old tasks table does not have it
     cursor.execute("PRAGMA table_info(tasks)")
     columns = [column[1] for column in cursor.fetchall()]
@@ -136,3 +145,85 @@ def get_dashboard_data(session_id: str):
         "overdue": overdue_count,
         "today_focus": today_focus
     }
+
+def save_memory_db(session_id: str, memory: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO memories (session_id, memory) VALUES (?, ?)",
+        (session_id, memory)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def list_memories_db(session_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, memory, created_at
+        FROM memories
+        WHERE session_id = ?
+        ORDER BY id DESC
+        LIMIT 20
+        """,
+        (session_id,)
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows
+
+
+def search_memories_db(session_id: str, query: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    words = [word.lower() for word in query.split() if len(word) > 2]
+
+    if not words:
+        return list_memories_db(session_id)[:5]
+
+    conditions = " OR ".join(["LOWER(memory) LIKE ?" for _ in words])
+    params = [f"%{word}%" for word in words]
+
+    cursor.execute(
+        f"""
+        SELECT id, memory, created_at
+        FROM memories
+        WHERE session_id = ?
+        AND ({conditions})
+        ORDER BY id DESC
+        LIMIT 5
+        """,
+        [session_id] + params
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows
+
+def memory_exists_db(session_id: str, memory: str) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM memories
+        WHERE session_id = ?
+        AND LOWER(memory) = LOWER(?)
+        """,
+        (session_id, memory)
+    )
+
+    count = cursor.fetchone()[0]
+    conn.close()
+
+    return count > 0

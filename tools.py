@@ -2,7 +2,15 @@ import os
 from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from tavily import TavilyClient
-from database import get_connection
+from database import (
+    get_connection,
+    save_memory_db,
+    list_memories_db,
+    search_memories_db
+)
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 current_session_id = "default"
@@ -64,6 +72,39 @@ def normalize_due_date(due_date: str | None) -> str | None:
 
     return due_date
 
+@tool
+def save_memory(memory: str) -> str:
+    """Save memory."""
+    save_memory_db(current_session_id, memory)
+    return f"Memory saved: {memory}"
+
+
+@tool
+def list_memories() -> str:
+    """List memories."""
+    rows = list_memories_db(current_session_id)
+
+    if not rows:
+        return "No memories saved yet."
+
+    return "\n".join(
+        f"{row[0]}. {row[1]} ({row[2]})"
+        for row in rows
+    )
+
+
+@tool
+def search_memories(query: str) -> str:
+    """Search memories."""
+    rows = search_memories_db(current_session_id, query)
+
+    if not rows:
+        return "No matching memories found."
+
+    return "\n".join(
+        f"{row[0]}. {row[1]} ({row[2]})"
+        for row in rows
+    )
 
 @tool
 def add_task(task: str, due_date: str = "") -> str:
@@ -460,8 +501,8 @@ def web_search(query: str) -> str:
     try:
         response = tavily_client.search(
             query=query,
-            search_depth="basic",
-            max_results=3,
+            search_depth="advanced",
+            max_results=5,
             include_answer=True,
             include_raw_content=False
         )
@@ -471,8 +512,10 @@ def web_search(query: str) -> str:
 
         output = []
 
+        output.append(f"Search query: {query}")
+
         if answer:
-            output.append(f"Answer:\n{answer}")
+            output.append(f"Search answer:\n{answer}")
 
         if results:
             output.append("Sources:")
@@ -483,9 +526,9 @@ def web_search(query: str) -> str:
                 content = item.get("content", "")
 
                 output.append(
-                    f"{index}. {title}\n"
-                    f"{content}\n"
-                    f"{url}"
+                    f"[{index}] {title}\n"
+                    f"URL: {url}\n"
+                    f"Snippet: {content}"
                 )
 
         if not output:
@@ -495,7 +538,6 @@ def web_search(query: str) -> str:
 
     except Exception as e:
         return f"Web search error: {str(e)}"
-
 
 jarvis_tools = [
     add_task,
@@ -511,5 +553,8 @@ jarvis_tools = [
     save_note,
     list_notes,
     get_current_time,
-    web_search
+    web_search,
+    save_memory,
+    list_memories,
+    search_memories
 ]
