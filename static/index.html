@@ -343,6 +343,10 @@
             animation: orbPulse 1.4s ease-in-out infinite
         }
 
+        .orb-btn.speaking {
+            animation: speakingPulse 0.9s ease-in-out infinite
+        }
+
         @keyframes orbPulse {
 
             0%,
@@ -352,6 +356,20 @@
 
             50% {
                 box-shadow: 0 0 60px rgba(0, 212, 255, 1), 0 0 130px rgba(0, 212, 255, 0.5)
+            }
+        }
+
+        @keyframes speakingPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: brightness(1)
+            }
+
+            50% {
+                transform: scale(1.04);
+                filter: brightness(1.32)
             }
         }
 
@@ -665,7 +683,7 @@
             </div>
 
             <div id="statusText" class="status-line">AWAITING COMMAND</div>
-            <div class="tap-hint">[ TAP ORB TO SPEAK ]</div>
+            <div class="tap-hint">[ TAP ORB TO SPEAK · TAP WHILE SPEAKING TO INTERRUPT ]</div>
 
             <section id="responsePanel" class="response-panel">
                 <div class="resp-header">
@@ -740,20 +758,40 @@
         let isRecording = false;
         let recordingTimer = null;
         const MAX_MS = 10000;
+
         let voices = [];
         let jarvisVoice = null;
+        let isSpeaking = false;
 
         function loadVoices() {
             if (!("speechSynthesis" in window)) return;
+
             voices = window.speechSynthesis.getVoices();
             if (!voices.length) return;
 
+            const preferredNames = [
+                "daniel",
+                "david",
+                "mark",
+                "george",
+                "alex",
+                "arthur",
+                "fred",
+                "ralph",
+                "google uk english male",
+                "microsoft david",
+                "microsoft mark",
+                "microsoft george"
+            ];
+
             jarvisVoice =
-                voices.find(v => v.lang.toLowerCase().startsWith("en-gb") && v.name.toLowerCase().includes("daniel")) ||
-                voices.find(v => v.lang.toLowerCase().startsWith("en-gb")) ||
-                voices.find(v => v.name.toLowerCase().includes("david")) ||
+                voices.find(v => preferredNames.some(name => v.name.toLowerCase().includes(name))) ||
+                voices.find(v => v.lang.toLowerCase().startsWith("en-gb") && !v.name.toLowerCase().includes("female")) ||
+                voices.find(v => v.lang.toLowerCase().startsWith("en-us") && !v.name.toLowerCase().includes("female")) ||
                 voices.find(v => v.lang.toLowerCase().startsWith("en")) ||
                 voices[0];
+
+            console.log("Selected Jarvis voice:", jarvisVoice.name, jarvisVoice.lang);
         }
 
         loadVoices();
@@ -784,6 +822,16 @@
             } else {
                 orbBtn.classList.remove("thinking");
             }
+        }
+
+        function stopSpeech() {
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+
+            isSpeaking = false;
+            orbBtn.classList.remove("speaking");
+            setStatus("SPEECH INTERRUPTED");
         }
 
         function showResponse(text, title = "JARVIS") {
@@ -901,6 +949,11 @@
         }
 
         async function toggleVoice() {
+            if (isSpeaking || ("speechSynthesis" in window && window.speechSynthesis.speaking)) {
+                stopSpeech();
+                return;
+            }
+
             if (isRecording) {
                 stopRecording();
                 return;
@@ -1075,14 +1128,33 @@
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "en-GB";
-            utterance.rate = 0.88;
-            utterance.pitch = 0.62;
+
+            utterance.rate = 0.82;
+            utterance.pitch = 0.42;
             utterance.volume = 1;
 
             if (jarvisVoice) {
                 utterance.voice = jarvisVoice;
                 utterance.lang = jarvisVoice.lang;
             }
+
+            utterance.onstart = function () {
+                isSpeaking = true;
+                orbBtn.classList.add("speaking");
+                setStatus("SPEAKING...");
+            };
+
+            utterance.onend = function () {
+                isSpeaking = false;
+                orbBtn.classList.remove("speaking");
+                setStatus("AWAITING COMMAND");
+            };
+
+            utterance.onerror = function () {
+                isSpeaking = false;
+                orbBtn.classList.remove("speaking");
+                setStatus("AWAITING COMMAND");
+            };
 
             window.speechSynthesis.speak(utterance);
         }
