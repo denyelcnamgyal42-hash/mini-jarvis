@@ -791,6 +791,16 @@
             return "";
         }
 
+        function getAudioFilename(audioBlob) {
+            const type = audioBlob.type || "";
+
+            if (type.includes("mp4")) return "voice.mp4";
+            if (type.includes("mpeg")) return "voice.mp3";
+            if (type.includes("webm")) return "voice.webm";
+
+            return "voice.webm";
+        }
+
         function setStatus(text) {
             statusText.textContent = text;
             footerNote.textContent = text;
@@ -1035,7 +1045,7 @@
 
             try {
                 const formData = new FormData();
-                formData.append("audio", audioBlob, "voice.webm");
+                formData.append("audio", audioBlob, getAudioFilename(audioBlob));
                 formData.append("session_id", sessionId);
 
                 const response = await fetch("/voice-chat", {

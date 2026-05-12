@@ -143,8 +143,18 @@ def deterministic_route(user_message: str) -> str | None:
         return "planner_agent"
 
     task_markers = [
+        "add a task",
+        "add task",
+        "create a task",
+        "new task",
         "task",
         "tasks",
+        "remind me to",
+        "reminder",
+        "todo",
+        "to-do",
+        "put this on my list",
+        "add this to my list",
         "note",
         "notes",
         "remember",
