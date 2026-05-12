@@ -1,4 +1,4 @@
-const CACHE_NAME = "mini-jarvis-v1";
+const CACHE_NAME = "jarvis-v2";
 
 const STATIC_ASSETS = [
     "/",

@@ -658,7 +658,7 @@
         <header class="hud-top">
             <div class="brand-block">
                 <div class="brand-title">JARVIS</div>
-                <div class="brand-sub">PERSONAL AI SYSTEM · ONLINE</div>
+                <div class="brand-sub">PERSONAL AI SYSTEM | ONLINE</div>
             </div>
             <div class="status-cluster">
                 <div class="status-live"><span class="live-dot"></span>SYS LIVE</div>
@@ -678,12 +678,12 @@
                 <div class="pulse-ring"></div>
 
                 <button id="orbBtn" class="orb-btn" onclick="toggleVoice()" title="Speak to Jarvis">
-                    <div class="orb-inner" id="orbIcon">⬡</div>
+                    <div class="orb-inner" id="orbIcon">J</div>
                 </button>
             </div>
 
             <div id="statusText" class="status-line">AWAITING COMMAND</div>
-            <div class="tap-hint">[ TAP ORB TO SPEAK · TAP WHILE SPEAKING TO INTERRUPT ]</div>
+            <div class="tap-hint">[ TAP ORB TO SPEAK | TAP WHILE SPEAKING TO INTERRUPT ]</div>
 
             <section id="responsePanel" class="response-panel">
                 <div class="resp-header">
@@ -705,11 +705,11 @@
 
         <footer class="footer">
             <div class="input-row">
-                <button class="icon-btn" id="fileBtn" onclick="openFilePicker()" title="Upload">⬡</button>
+                <button class="icon-btn" id="fileBtn" onclick="openFilePicker()" title="Upload">UP</button>
                 <input id="fileInput" type="file" hidden
                     accept=".txt,.md,.py,.js,.html,.css,.json,.csv,.xml,.yaml,.yml,.java,.cpp,.c,.ts,.tsx,.jsx,.vue,.go,.rs,.php,.rb,.cs,.pdf" />
                 <input class="msg-input" id="messageInput" placeholder="[ INPUT COMMAND... ]" autocomplete="off" />
-                <button class="icon-btn send-btn" id="sendBtn" onclick="sendMessage()" title="Send">▶</button>
+                <button class="icon-btn send-btn" id="sendBtn" onclick="sendMessage()" title="Send">&gt;</button>
             </div>
             <div id="footerNote" class="footer-note"></div>
         </footer>
@@ -769,25 +769,9 @@
             voices = window.speechSynthesis.getVoices();
             if (!voices.length) return;
 
-            const preferredNames = [
-                "daniel",
-                "david",
-                "mark",
-                "george",
-                "alex",
-                "arthur",
-                "fred",
-                "ralph",
-                "google uk english male",
-                "microsoft david",
-                "microsoft mark",
-                "microsoft george"
-            ];
-
+            // Pick the default English voice. This usually sounds more natural.
             jarvisVoice =
-                voices.find(v => preferredNames.some(name => v.name.toLowerCase().includes(name))) ||
-                voices.find(v => v.lang.toLowerCase().startsWith("en-gb") && !v.name.toLowerCase().includes("female")) ||
-                voices.find(v => v.lang.toLowerCase().startsWith("en-us") && !v.name.toLowerCase().includes("female")) ||
+                voices.find(v => v.default && v.lang.toLowerCase().startsWith("en")) ||
                 voices.find(v => v.lang.toLowerCase().startsWith("en")) ||
                 voices[0];
 
@@ -988,7 +972,7 @@
                 mediaRecorder.onstart = function () {
                     isRecording = true;
                     orbBtn.classList.add("recording");
-                    orbIcon.textContent = "■";
+                    orbIcon.textContent = "REC";
                     setStatus("LISTENING...");
 
                     recordingTimer = setTimeout(function () {
@@ -1007,7 +991,7 @@
                 mediaRecorder.onstop = async function () {
                     isRecording = false;
                     orbBtn.classList.remove("recording");
-                    orbIcon.textContent = "⬡";
+                    orbIcon.textContent = "J";
                     clearTimeout(recordingTimer);
 
                     stream.getTracks().forEach(track => track.stop());
@@ -1017,7 +1001,7 @@
                     });
 
                     if (audioBlob.size < 1000) {
-                        setStatus("AUDIO UNCLEAR — RETRY");
+                        setStatus("AUDIO UNCLEAR - RETRY");
                         return;
                     }
 
@@ -1031,7 +1015,7 @@
                 setStatus("MIC ERROR: " + error.message);
                 isRecording = false;
                 orbBtn.classList.remove("recording");
-                orbIcon.textContent = "⬡";
+                orbIcon.textContent = "J";
             }
         }
 
@@ -1127,10 +1111,11 @@
             playBeep();
 
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = "en-GB";
+            utterance.lang = "en-US";
 
-            utterance.rate = 0.9;
-            utterance.pitch = 0.75;
+            // Natural voice settings
+            utterance.rate = 1;
+            utterance.pitch = 1;
             utterance.volume = 1;
 
             if (jarvisVoice) {
@@ -1158,7 +1143,6 @@
 
             window.speechSynthesis.speak(utterance);
         }
-
         function playBeep() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;

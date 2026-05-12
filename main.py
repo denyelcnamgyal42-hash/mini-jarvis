@@ -1,4 +1,4 @@
-import os 
+import os
 import tempfile
 from groq import Groq
 from fastapi import UploadFile, File, Form 
@@ -20,7 +20,9 @@ load_dotenv()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-app = FastAPI(title="Mini Jarvis Agent")
+RATE_LIMIT_MESSAGE = "Jarvis hit the AI rate limit. Please wait a moment and try again."
+
+app = FastAPI(title="Jarvis Agent")
 init_db()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -31,6 +33,12 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str 
+
+
+def is_rate_limit_error(error: Exception) -> bool:
+    text = str(error).lower()
+    status_code = getattr(error, "status_code", None)
+    return status_code == 429 or "429" in text or "rate_limit_exceeded" in text or "rate limit" in text
 
 def extract_text_from_file(filename: str, file_bytes: bytes) -> str:
     """
@@ -84,8 +92,12 @@ def chat(request: ChatRequest):
         return {"reply": reply}
 
     except Exception as e:
+        if is_rate_limit_error(e):
+            print("Backend rate limit:", e)
+            return {"reply": RATE_LIMIT_MESSAGE}
+
         print("Backend error:", e)
-        return {"reply": f"Backend error: {str(e)}"}
+        return {"reply": "Jarvis had a backend issue. Please try again."}
 
 @app.post("/voice-chat")
 async def voice_chat(
@@ -97,7 +109,8 @@ async def voice_chat(
         print("Session ID:", session_id)
         print("Audio file:", audio.filename)
 
-        suffix = ".webm"
+        temp_audio_path = None
+        suffix = os.path.splitext(audio.filename or "")[1] or ".webm"
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_audio:
             temp_audio.write(await audio.read())
@@ -110,16 +123,21 @@ async def voice_chat(
                 response_format="text",
                 language="en",
                 prompt=(
-        "The speaker is talking to an AI assistant called Mini Jarvis. "
-        "Common topics include adding tasks, getting current time, Live Updates on Football Teams "
-    )
+                    "The speaker is talking to an AI assistant called Jarvis. "
+                    "Common project terms: Jarvis, LangGraph, FastAPI, Render, GitHub, "
+                    "football, Manchester City, Barcelona, Lamine Yamal, Kevin De Bruyne, "
+                    "AI agents, Python, JavaScript, web development."
+                )
             )
 
-        os.remove(temp_audio_path)
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
 
         print("Transcribed text:", transcription)
 
         reply = ask_jarvis(transcription, session_id)
+
+        print("Voice response ready")
 
         return {
             "transcript": transcription,
@@ -127,10 +145,20 @@ async def voice_chat(
         }
 
     except Exception as e:
+        if "temp_audio_path" in locals() and temp_audio_path and os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
+
+        if is_rate_limit_error(e):
+            print("Voice rate limit:", e)
+            return {
+                "transcript": "",
+                "reply": RATE_LIMIT_MESSAGE
+            }
+
         print("Voice backend error:", e)
         return {
             "transcript": "",
-            "reply": f"I heard you, but Jarvis had an agent error: {str(e)}"
+            "reply": "I heard you, but Jarvis had an agent issue. Please try again."
         }
     
 @app.get("/dashboard")
@@ -146,7 +174,7 @@ def dashboard(session_id: str):
             "completed_tasks": 0,
             "notes_count": 0,
             "today_focus": None,
-            "error": str(e)
+            "error": "Dashboard unavailable."
         }
     
 @app.post("/upload-file")
@@ -188,7 +216,11 @@ async def upload_file(
         }
 
     except Exception as e:
+        if is_rate_limit_error(e):
+            print("File analysis rate limit:", e)
+            return {"reply": RATE_LIMIT_MESSAGE}
+
         print("File upload error:", e)
         return {
-            "reply": f"File upload error: {str(e)}"
+            "reply": "File upload failed. Please check the file and try again."
         }

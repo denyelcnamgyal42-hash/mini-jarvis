@@ -7,8 +7,29 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
-from tools import jarvis_tools, set_session_id
-from database import search_memories_db, save_memory_db, memory_exists_db
+from tools import (
+    jarvis_tools,
+    set_session_id,
+    add_task,
+    list_tasks,
+    complete_task,
+    delete_task,
+    update_task,
+    clear_completed_tasks,
+    list_today_tasks,
+    list_overdue_tasks,
+    get_today_focus,
+    get_task_summary,
+    save_note,
+    list_notes,
+    get_current_time,
+    web_search,
+    save_memory,
+    list_memories,
+    search_memories,
+    is_user_related_memory
+)
+from database import search_memories_db, save_memory_db, memory_exists_db, list_memories_db
 
 
 # -----------------------------
@@ -31,7 +52,29 @@ llm = ChatGroq(
     timeout=30
 )
 
-llm_with_tools = llm.bind_tools(jarvis_tools)
+task_tools = [
+    add_task,
+    list_tasks,
+    complete_task,
+    delete_task,
+    update_task,
+    clear_completed_tasks,
+    list_today_tasks,
+    list_overdue_tasks,
+    get_today_focus,
+    get_task_summary,
+    save_note,
+    list_notes,
+    get_current_time,
+    save_memory,
+    list_memories,
+    search_memories
+]
+
+web_tools = [web_search]
+
+task_llm_with_tools = llm.bind_tools(task_tools)
+web_llm_with_tools = llm.bind_tools(web_tools)
 
 
 # -----------------------------
@@ -43,6 +86,113 @@ def get_last_user_message(state: JarvisState) -> str:
         if isinstance(message, HumanMessage):
             return message.content
     return ""
+
+
+def normalize_message(message: str) -> str:
+    return message.strip().lower()
+
+
+def is_memory_question(message: str) -> bool:
+    text = normalize_message(message)
+    memory_questions = [
+        "what do i like",
+        "what do you remember",
+        "what are my preferences",
+        "what have you remembered",
+        "list my memories",
+        "show my memories",
+        "what do you know about me"
+    ]
+    return any(phrase in text for phrase in memory_questions)
+
+
+def should_extract_memory(message: str) -> bool:
+    if is_memory_question(message):
+        return False
+
+    text = normalize_message(message)
+    triggers = [
+        "remember",
+        "i like",
+        "i prefer",
+        "i use",
+        "i am working on",
+        "i'm working on",
+        "my project",
+        "save this",
+        "note that"
+    ]
+    return any(trigger in text for trigger in triggers)
+
+
+def deterministic_route(user_message: str) -> str | None:
+    """
+    Skip the router LLM for obvious intents to reduce avoidable Groq calls.
+    """
+
+    text = normalize_message(user_message)
+
+    planner_agent_markers = [
+        "create tasks for",
+        "turn this into tasks",
+        "organize my work",
+        "prepare for exam",
+        "complete this project"
+    ]
+    if any(marker in text for marker in planner_agent_markers):
+        return "planner_agent"
+
+    task_markers = [
+        "task",
+        "tasks",
+        "note",
+        "notes",
+        "remember",
+        "focus on today",
+        "today's focus",
+        "priority",
+        "priorities"
+    ]
+    if is_memory_question(text) or any(marker in text for marker in task_markers):
+        return "task_agent"
+
+    web_markers = [
+        "search online",
+        "web search",
+        "latest",
+        "current",
+        "today",
+        "recent",
+        "news",
+        "match",
+        "lineup",
+        "transfer",
+        "injury"
+    ]
+    if any(marker in text for marker in web_markers):
+        return "web_research"
+
+    coding_markers = [
+        "debug",
+        "error",
+        "traceback",
+        "stack trace",
+        "api",
+        "fastapi",
+        "langgraph",
+        "python",
+        "javascript",
+        "render deploy",
+        "github"
+    ]
+    if any(marker in text for marker in coding_markers):
+        return "coding_helper"
+
+    planning_markers = ["plan", "roadmap", "schedule", "study", "prepare"]
+    if any(marker in text for marker in planning_markers):
+        return "planning_helper"
+
+    return None
 
 
 # -----------------------------
@@ -58,10 +208,15 @@ def router_node(state: JarvisState):
     """
 
     user_message = get_last_user_message(state)
+    route = deterministic_route(user_message)
+
+    if route:
+        print("Router selected deterministically:", route)
+        return {"route": route}
 
     system_prompt = SystemMessage(
         content=(
-            "You are the routing brain of Mini Jarvis. "
+            "You are the routing brain of Jarvis. "
             "Classify the user's message into exactly one route. "
             "Return only one word from this list:\n"
             "task_agent\n"
@@ -109,7 +264,7 @@ def route_to_skill(state: JarvisState) -> Literal[
     "web_research",
     "coding_helper",
     "planning_helper",
-    "planenr_agent",
+    "planner_agent",
     "general_chat"
 ]:
     return state["route"]
@@ -124,7 +279,7 @@ def general_chat_node(state: JarvisState):
 
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis, a helpful AI assistant. "
+            "You are Jarvis, a helpful voice-first AI assistant. "
             "Answer clearly and concisely. "
             "Do not claim to perform actions unless a tool was used.\n\n"
             f"Relevant long-term memory:\n{memory_context}"
@@ -143,7 +298,7 @@ def coding_helper_node(state: JarvisState):
     memory_context = state.get("memory_context", "No relevant long-term memories.")
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis in coding/debugging mode. "
+            "You are Jarvis in coding/debugging mode. "
             "Your job is to help the user understand and fix programming problems. "
             "The user is learning, so teach clearly while solving the issue. "
             "\n\n"
@@ -177,7 +332,7 @@ def planning_helper_node(state: JarvisState):
     memory_context = state.get("memory_context", "No relevant long-term memories.")
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis in planning mode. "
+            "You are Jarvis in planning mode. "
             "Create practical, structured plans. "
             "Break work into clear phases and next actions. "
             "Avoid vague advice. "
@@ -214,7 +369,7 @@ def planner_agent_node(state: JarvisState):
 
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis in executable planner mode. "
+            "You are Jarvis in executable planner mode. "
             f"Today's date is {today}. "
             "Your job is to help the user turn a broad goal into an actionable plan. "
             "\n\n"
@@ -241,7 +396,10 @@ def get_memory_context(session_id: str, user_message: str) -> str:
     Retrieve relevant long-term memories for this user/session.
     """
 
-    rows = search_memories_db(session_id, user_message)
+    if is_memory_question(user_message):
+        rows = list_memories_db(session_id)
+    else:
+        rows = search_memories_db(session_id, user_message)
 
     if not rows:
         return "No relevant long-term memories."
@@ -273,7 +431,7 @@ def extract_and_save_memory(
 
     system_prompt = SystemMessage(
         content=(
-            "You are a memory extraction module for Mini Jarvis. "
+            "You are a memory extraction module for Jarvis. "
             "Your job is to extract useful long-term memories about the user from the conversation. "
             "\n\n"
             "Save memories about:\n"
@@ -330,7 +488,9 @@ def extract_and_save_memory(
             memory = result.replace("MEMORY:", "", 1).strip()
 
             if memory:
-                if memory_exists_db(session_id, memory):
+                if not is_user_related_memory(memory):
+                    print("agent.py: public/non-user memory skipped:", memory)
+                elif memory_exists_db(session_id, memory):
                     print("agent.py: duplicate memory skipped:", memory)
                 else:
                     save_memory_db(session_id, memory)
@@ -348,7 +508,7 @@ def planner_summary_node(state: JarvisState):
 
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis. The planner has just used tools to organize the user's goal. "
+            "You are Jarvis. The planner has just used tools to organize the user's goal. "
             "Now give a concise final response. "
             "\n\n"
             "Include:\n"
@@ -373,7 +533,7 @@ def task_agent_node(state: JarvisState):
 
     system_prompt = SystemMessage(
     content=(
-        f"You are Mini Jarvis in task/reminder/memory mode. "
+        f"You are Jarvis in task/reminder/memory mode. "
         f"Today's date is {today}. "
         "You may only use these tools: add_task, list_tasks, complete_task, "
         "delete_task, update_task, clear_completed_tasks, list_today_tasks, "
@@ -390,7 +550,7 @@ def task_agent_node(state: JarvisState):
     )
 )
 
-    response = llm_with_tools.invoke([system_prompt] + state["messages"])
+    response = task_llm_with_tools.invoke([system_prompt] + state["messages"])
 
     return {"messages": [response]}
 
@@ -404,10 +564,10 @@ def web_research_node(state: JarvisState):
 
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis in web research mode. "
+            "You are Jarvis in web research mode. "
             "Your job is to answer questions that require current or online information. "
             "\n\n"
-            "Use only the web_search tool. "
+            "Use the web_search tool before answering. "
             "Do not answer from memory when the user asks for latest, today, recent, current, match results, lineups, transfers, injuries, news, or live/current information. "
             "\n\n"
             "When the user's question depends on previous context, include that context in the search query. "
@@ -423,7 +583,7 @@ def web_research_node(state: JarvisState):
         )
     )
 
-    response = llm_with_tools.invoke([system_prompt] + state["messages"])
+    response = web_llm_with_tools.invoke([system_prompt] + state["messages"])
 
     return {"messages": [response]}
 
@@ -474,13 +634,14 @@ def route_after_tools(state: JarvisState):
 def summarize_search_node(state: JarvisState):
     system_prompt = SystemMessage(
         content=(
-            "You are Mini Jarvis. The previous message contains web search results. "
+            "You are Jarvis. The previous message contains web search results. "
             "Your job is to answer using only those search results. "
             "\n\n"
             "Rules:\n"
-            "- Do not invent facts not present in the search results.\n"
-            "- For sports results, clearly state the score, scorers, whether the player played, and the source basis if available.\n"
-            "- If the search results say a player was missing, injured, suspended, or absent, say they did not play.\n"
+            "- Use only the search answer and snippets returned by the web_search tool.\n"
+            "- Do not invent scores, scorers, lineups, assists, transfers, injuries, or dates.\n"
+            "- For sports results, state the score, scorers, whether the player played, and source basis only if the search results confirm them.\n"
+            "- If the search results say a player was missing, injured, suspended, or absent, say they did not play and cite that basis.\n"
             "- If the search results do not clearly answer the question, say you could not confirm it.\n"
             "- If sources conflict, mention the conflict instead of guessing.\n"
             "- Keep the answer concise."
@@ -588,7 +749,7 @@ def ask_jarvis(user_message: str, session_id: str) -> str:
 
     chat_histories[session_id].append(HumanMessage(content=user_message))
 
-    recent_history = chat_histories[session_id][-10:]
+    recent_history = chat_histories[session_id][-6:]
 
     memory_context = get_memory_context(session_id, user_message)
 
@@ -606,19 +767,22 @@ def ask_jarvis(user_message: str, session_id: str) -> str:
 
     print("agent.py: after graph invoke")
 
-    chat_histories[session_id] = result["messages"][-10:]
+    chat_histories[session_id] = result["messages"][-6:]
 
     final_message = result["messages"][-1]
     assistant_reply = final_message.content
 
     print("agent.py: final message ready")
 
-    extract_and_save_memory(
-        user_message=user_message,
-        assistant_reply=assistant_reply,
-        session_id=session_id,
-        recent_history=chat_histories[session_id]
-    )
+    if should_extract_memory(user_message):
+        extract_and_save_memory(
+            user_message=user_message,
+            assistant_reply=assistant_reply,
+            session_id=session_id,
+            recent_history=chat_histories[session_id]
+        )
+    else:
+        print("agent.py: memory extraction skipped")
 
     return assistant_reply
 
@@ -689,7 +853,7 @@ def analyze_uploaded_file(
         trimmed_content += "\n\n[File was shortened because it was too long.]"
 
     base_rules = (
-        "You are Mini Jarvis. Analyze only the file content provided. "
+        "You are Jarvis. Analyze only the file content provided. "
         "Do not claim to see anything outside the uploaded file. "
         "If the user gives a specific instruction, follow it. "
         "Be clear, practical, and concise."
@@ -772,6 +936,6 @@ def analyze_uploaded_file(
         HumanMessage(content=f"I uploaded {filename}. {user_instruction}")
     )
     chat_histories[session_id].append(response)
-    chat_histories[session_id] = chat_histories[session_id][-10:]
+    chat_histories[session_id] = chat_histories[session_id][-6:]
 
     return response.content

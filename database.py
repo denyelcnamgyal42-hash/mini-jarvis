@@ -1,10 +1,27 @@
+import os
+import re
 import sqlite3
 
-DB_NAME = "jarvis.db"
+DB_NAME = os.getenv("JARVIS_DB_PATH", "jarvis.db")
 
 
 def get_connection():
+    """
+    Central database access point.
+
+    Render's normal filesystem is ephemeral, so SQLite is useful for local
+    development but not long-term production memory. Keeping DB access behind
+    this function makes a later PostgreSQL swap much smaller.
+    """
     return sqlite3.connect(DB_NAME)
+
+
+def normalize_memory_text(memory: str) -> str:
+    value = memory.strip().lower()
+    value = re.sub(r"^(the\s+)?user\s+", "user ", value)
+    value = re.sub(r"\s+", " ", value)
+    value = value.rstrip(".! ")
+    return value
 
 
 def init_db():
@@ -36,6 +53,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT NOT NULL,
         memory TEXT NOT NULL,
+        memory_key TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
 """)
@@ -46,6 +64,38 @@ def init_db():
 
     if "due_date" not in columns:
         cursor.execute("ALTER TABLE tasks ADD COLUMN due_date TEXT")
+
+    cursor.execute("PRAGMA table_info(memories)")
+    memory_columns = [column[1] for column in cursor.fetchall()]
+
+    if "memory_key" not in memory_columns:
+        cursor.execute("ALTER TABLE memories ADD COLUMN memory_key TEXT")
+
+    cursor.execute("SELECT id, memory FROM memories WHERE memory_key IS NULL OR memory_key = ''")
+    memory_rows = cursor.fetchall()
+    for memory_id, memory in memory_rows:
+        cursor.execute(
+            "UPDATE memories SET memory_key = ? WHERE id = ?",
+            (normalize_memory_text(memory), memory_id)
+        )
+
+    cursor.execute(
+        """
+        DELETE FROM memories
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM memories
+            GROUP BY session_id, memory_key
+        )
+        """
+    )
+
+    cursor.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_session_key
+        ON memories(session_id, memory_key)
+        """
+    )
 
     conn.commit()
     conn.close()
@@ -149,10 +199,14 @@ def get_dashboard_data(session_id: str):
 def save_memory_db(session_id: str, memory: str):
     conn = get_connection()
     cursor = conn.cursor()
+    memory_key = normalize_memory_text(memory)
 
     cursor.execute(
-        "INSERT INTO memories (session_id, memory) VALUES (?, ?)",
-        (session_id, memory)
+        """
+        INSERT OR IGNORE INTO memories (session_id, memory, memory_key)
+        VALUES (?, ?, ?)
+        """,
+        (session_id, memory, memory_key)
     )
 
     conn.commit()
@@ -184,7 +238,11 @@ def search_memories_db(session_id: str, query: str):
     conn = get_connection()
     cursor = conn.cursor()
 
-    words = [word.lower() for word in query.split() if len(word) > 2]
+    words = [
+        word.lower()
+        for word in re.findall(r"[a-zA-Z0-9]+", query)
+        if len(word) > 2 and word.lower() not in {"what", "about", "remember", "preferences"}
+    ]
 
     if not words:
         return list_memories_db(session_id)[:5]
@@ -218,9 +276,9 @@ def memory_exists_db(session_id: str, memory: str) -> bool:
         SELECT COUNT(*)
         FROM memories
         WHERE session_id = ?
-        AND LOWER(memory) = LOWER(?)
+        AND memory_key = ?
         """,
-        (session_id, memory)
+        (session_id, normalize_memory_text(memory))
     )
 
     count = cursor.fetchone()[0]

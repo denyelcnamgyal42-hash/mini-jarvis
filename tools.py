@@ -6,7 +6,8 @@ from database import (
     get_connection,
     save_memory_db,
     list_memories_db,
-    search_memories_db
+    search_memories_db,
+    memory_exists_db
 )
 from dotenv import load_dotenv
 
@@ -14,12 +15,46 @@ load_dotenv()
 
 
 current_session_id = "default"
-tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+tavily_api_key = os.getenv("TAVILY_API_KEY")
+tavily_client = TavilyClient(api_key=tavily_api_key) if tavily_api_key else None
 
 
 def set_session_id(session_id: str):
     global current_session_id
     current_session_id = session_id
+
+
+def is_user_related_memory(memory: str) -> bool:
+    """
+    Keep long-term memory focused on the user, not public facts from research.
+    """
+
+    value = memory.strip().lower()
+    user_markers = [
+        "user ",
+        "user's ",
+        "the user ",
+        "the user's ",
+        "i like",
+        "i prefer",
+        "i use",
+        "i am working on",
+        "my project",
+        "my goal",
+        "my preference"
+    ]
+
+    public_fact_starters = [
+        "lamine yamal is",
+        "kevin de bruyne is",
+        "barcelona is",
+        "manchester city is"
+    ]
+
+    if any(value.startswith(starter) for starter in public_fact_starters):
+        return False
+
+    return any(marker in value for marker in user_markers)
 
 
 def normalize_due_date(due_date: str | None) -> str | None:
@@ -74,7 +109,13 @@ def normalize_due_date(due_date: str | None) -> str | None:
 
 @tool
 def save_memory(memory: str) -> str:
-    """Save memory."""
+    """Save a stable user-related memory such as a preference, project, goal, tool, or learning context."""
+    if not is_user_related_memory(memory):
+        return "Memory not saved because it does not describe a stable user preference, project, goal, tool, or learning context."
+
+    if memory_exists_db(current_session_id, memory):
+        return f"Memory already saved: {memory}"
+
     save_memory_db(current_session_id, memory)
     return f"Memory saved: {memory}"
 
@@ -499,6 +540,9 @@ def get_current_time() -> str:
 def web_search(query: str) -> str:
     """Search web."""
     try:
+        if tavily_client is None:
+            return "Web search is not configured. Set TAVILY_API_KEY to enable online research."
+
         response = tavily_client.search(
             query=query,
             search_depth="advanced",
